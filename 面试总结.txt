@@ -1,23 +1,32 @@
 
 ========================java基础========================
 
-java创建对象的几种方式：new，反射，clone，反序列化。前两个会调用构造方法，后两个不会。其中反序列化需要对象实现serializable接口（这是一个空接口），通过ObjectInputStream.readObject方法创建
+java创建对象的几种方式
+new，反射，clone，反序列化。前两个会调用构造方法，后两个不会。其中反序列化需要对象实现serializable接口（这是一个空接口），通过ObjectInputStream.readObject方法创建
 
-transient的作用：序列化时忽视
+transient的作用
+序列化时忽视
 
-0.1*3和0.3是否相等：不，java默认使用double保存，0.1和0.3都无法精确表示
+0.1*3和0.3是否相等
+不，java默认使用double保存，0.1和0.3都无法精确表示
 
-a=a+b和a+=b的区别：a为short，b为int，相加时会隐式地将short提升为int，即结果为int。a=a+b会报错，无法用short接收int；a+=b会将结果强制转化为short，不会报错
+a=a+b和a+=b的区别
+a为short，b为int，相加时会隐式地将short提升为int，即结果为int。a=a+b会报错，无法用short接收int；a+=b会将结果强制转化为short，不会报错
 
-try catch finally及return的执行顺序：先执行try或catch，在return前保存结果，执行finally，再返回之前保存的结果（基本数据类型是保存值，对象则保存引用）。但若finally中return，则不会返回之前保存的记过
+try catch finally及return的执行顺序
+先执行try或catch，在return前保存结果，执行finally，再返回之前保存的结果（基本数据类型是保存值，对象则保存引用）。但若finally中return，则不会返回之前保存的记过
 
-IO流：可分为输入流和输出流，也可分为字符流和字节流。
+IO流
+可分为输入流和输出流，也可分为字符流和字节流。
 
-Object常用的方法：wait，配置sync关键字，一个线程在获取锁后，执行wait方法会手动释放锁，等待其他线程唤醒它。notify，配合sync关键字，唤醒wait的某个线程（但此时没有释放锁，只是通知其他线程可以抢锁了）。notifyall，唤醒全部线程。
+Object常用的方法
+wait，配置sync关键字，一个线程在获取锁后，执行wait方法会手动释放锁，等待其他线程唤醒它。notify，配合sync关键字，唤醒wait的某个线程（但此时没有释放锁，只是通知其他线程可以抢锁了）。notifyall，唤醒全部线程。
 
-实现两个线程交替执行：while循环里执行业务代码，然后notify，然后wait。循环外notify。
+实现两个线程交替执行
+while循环里执行业务代码，然后notify，然后wait。循环外notify。
 
-fail-fast：java集合的一种错误机制，多个线程同时操作同一个集合对象时，可能产生fail-fast事件，抛出异常。遍历前记录modCount（记录集合修改的次数），遍历时比较该值是否有改变，有则说明被修改，抛异常。
+fail-fast
+java集合的一种错误机制，多个线程同时操作同一个集合对象时，可能产生fail-fast事件，抛出异常。遍历前记录modCount（记录集合修改的次数），遍历时比较该值是否有改变，有则说明被修改，抛异常。
 
 concurrentHashMap原理
 java8之前，分段锁
@@ -53,74 +62,101 @@ LL型(平衡因子=2且子树的平衡因子=1)右旋，RR同理左旋；LR型�
 
 ========================jvm========================
 
-内存区域
-程序计数器：不会内存溢出
-java虚拟机栈：线程私有，生命周期与线程相同，存储局部变量表，操作数栈，动态连接，方法出口等。每个方法被调用到执行完毕，对应这帧栈在虚拟机栈中的入栈到出栈的过程。局部变量表保存了编译期间克制的基本数据类型及对象引用和returnAddress类型。
+jvm内存区域
+
+程序计数器
+不会内存溢出
+
+java虚拟机栈
+线程私有，生命周期与线程相同，存储局部变量表，操作数栈，动态连接，方法出口等。每个方法被调用到执行完毕，对应这帧栈在虚拟机栈中的入栈到出栈的过程。局部变量表保存了编译期间克制的基本数据类型及对象引用和returnAddress类型。
 栈深度超过允许的最大值时stack overflow，栈扩容失败时oom。hotspot不允许动态扩容，即栈空间申请成功时不会oom，但申请时可能oom
 
-本地方法栈：hot spot将虚拟机栈和本地方法栈合二为一
+本地方法栈
+hot spot将虚拟机栈和本地方法栈合二为一
 
-java堆：-Xmx -Xms
+java堆
+-Xmx -Xms
 
-方法区：存储类信息，常亮，静态变量等，在java8中使用元空间meta-space来实现
+方法区
+存储类信息，常亮，静态变量等，在java8中使用元空间meta-space来实现
 
-运行时常量池：方法区的一部分，用于保存编译期生成的各种字面量和符号引用；字面量包括文本字符串、基本数据类型的值及final的常亮。比如String str="Hello"，则"Hello"是字面量。符号引用包括类、接口的全限定名，字段名，方法名等。向运行时常量池添加内容的常见方法是String.intern()
+运行时常量池
+方法区的一部分，用于保存编译期生成的各种字面量和符号引用；字面量包括文本字符串、基本数据类型的值及final的常亮。比如String str="Hello"，则"Hello"是字面量。符号引用包括类、接口的全限定名，字段名，方法名等。向运行时常量池添加内容的常见方法是String.intern()
 
-直接内存：NIO可以使用native函数库分配堆外内存，通过堆内的DirectByteBuffer对象进行操作，避免了在java堆和native堆之间来回复制数据
+直接内存
+NIO可以使用native函数库分配堆外内存，通过堆内的DirectByteBuffer对象进行操作，避免了在java堆和native堆之间来回复制数据
 
-对象的内存布局：对象头，实例数据，对齐填充
+对象的内存布局
+对象头，实例数据，对齐填充
 对象头包括对象自身运行时的数据（闭合hashcode，gc分代年龄，锁状态标志，线程持有的锁等）和类型指针
 
-对象的访问定位：句柄和直接指针两种
+对象的访问定位
+句柄和直接指针两种
 
-可达性分析：gc root节点包括虚拟机栈中引用的对象，类对象，常量，class对象等，有时也包含其他临时对象
+可达性分析
+gc root节点包括虚拟机栈中引用的对象，类对象，常量，class对象等，有时也包含其他临时对象
 
-强软弱虚：软，在oom之前进行回收；弱，gc时回收；虚，对象被回收时发送系统通知
+强软弱虚
+软，在oom之前进行回收；弱，gc时回收；虚，对象被回收时发送系统通知
 
-跨代引用：记忆集remembered set是抽象，卡表是具体实现。卡表每一个元素为卡页，512byte。卡表元素变脏是通过写屏障实现的。
+跨代引用
+记忆集remembered set是抽象，卡表是具体实现。卡表每一个元素为卡页，512byte。卡表元素变脏是通过写屏障实现的。
 
-标记清除：标记所有要回收的对象，然后统一回收。产生碎片，大部分对象回收时效率低
+标记清除
+标记所有要回收的对象，然后统一回收。产生碎片，大部分对象回收时效率低
 
-标记复制：各50%，改进811+逃生门设计
+标记复制
+各50%，改进811+逃生门设计
 
-标记整理：让存活的对象向一段移动。老年代很慢
+标记整理
+让存活的对象向一段移动。老年代很慢
 
-根节点枚举：虚拟机通过oopmap的数据结构直接获取哪些存在对象引用：jvm执行到特定的指令（安全点）时，会根据帧栈的状态生成对应的oopmap，记录了帧栈中哪些位置包含了引用。
+根节点枚举
+虚拟机通过oopmap的数据结构直接获取哪些存在对象引用：jvm执行到特定的指令（安全点）时，会根据帧栈的状态生成对应的oopmap，记录了帧栈中哪些位置包含了引用。
 
-安全点：选择标准为程序是否会长时间运行，一般为方法调用，循环跳转，异常跳转等
+安全点
+选择标准为程序是否会长时间运行，一般为方法调用，循环跳转，异常跳转等
 
-空间担保机制：minor gc时，若存活对象总和大于survivor区大小，存活对象会直接放入老年代。minor gc之前，jvm会预估存活对象总和，判断老年代最大连续空间是否大于历次minor gc存活对象平均大小或新生代对象大小总和，大于任意一个就触发minor gc，否则触发major gc。jdk7之后取消了该参数，改为固定行为
+空间担保机制
+minor gc时，若存活对象总和大于survivor区大小，存活对象会直接放入老年代。minor gc之前，jvm会预估存活对象总和，判断老年代最大连续空间是否大于历次minor gc存活对象平均大小或新生代对象大小总和，大于任意一个就触发minor gc，否则触发major gc。jdk7之后取消了该参数，改为固定行为
 
-serial收集器：单线程，客户端默认的新生代收集器。优点：额外内存消耗少，适合桌面应用的场景
+serial收集器
+单线程，客户端默认的新生代收集器。优点：额外内存消耗少，适合桌面应用的场景
 
-parNew收集器：serial的多线程并行版 
+parNew收集器
+serial的多线程并行版
 
-serialOld收集器：serial的老年代版本，单线程，标记整理，供客户端使用
+serialOld收集器
+serial的老年代版本，单线程，标记整理，供客户端使用
 
-CMS收集器：标记清除，gc过程包括：初始标记，并发标记，重新标记，并发清除。初始标记是标记gc root能直接关联的对象，会stw；并发标记是从gc root对象遍历整个对象图的过程，时间较长但不会stw；重新标记会修正并发标记期间用户进程操作可能导致的标记变动，会stw；并发清除不会stw。
+CMS收集器
+标记清除，gc过程包括：初始标记，并发标记，重新标记，并发清除。初始标记是标记gc root能直接关联的对象，会stw；并发标记是从gc root对象遍历整个对象图的过程，时间较长但不会stw；重新标记会修正并发标记期间用户进程操作可能导致的标记变动，会stw；并发清除不会stw。
 在并发标记和并发清除阶段，用户进程还在进行，会产生新的垃圾，因此不是老年代几乎满了时gc，而是92%（java6）时gc。若预留的空间不足以分配新对象，会出现并发失败（Concurrent Mode Failure），改用serial old进行垃圾收集
 
-G1收集器：cms的继承人，不再基于新生代或老年代，而是衡量堆的哪块内存里的垃圾最多。g1把堆分为多个大小相等的独立空间（region），每个堆可以是eden区、survivor区，也可以是老年代，g1根据不同角色采用不同策略。
+G1收集器
+cms的继承人，不再基于新生代或老年代，而是衡量堆的哪块内存里的垃圾最多。g1把堆分为多个大小相等的独立空间（region），每个堆可以是eden区、survivor区，也可以是老年代，g1根据不同角色采用不同策略。
 g1保留了新生代、老年代的概念，但他们是不连续的动态集合。TAMS是两个指针，preTAMS和nextTAMS。gc过程包括初始标记，并发标记，最终标记，筛选回收。初始标记：stw，标记gc root能直接关联的对象；并发标记：从gc root进行可达性分析，与用户进程同时进行，耗时较长；最终标记：stw，处理SATB记录；筛选回收：对各region的回收价值和成本进行排序，筛选回收价值最大的region集合，根据用户期望的停顿时间，选择任意多个region，将旧region的存活对象复制到空的region中。
 
 虚拟机类加载机制
-类的生命周期：加载、验证、准备、解析、初始化、使用、卸载。
+类的生命周期：加载、验证、准备、解析、初始化、使用、卸载
 加载：将class文件从磁盘或网络中读取到内存
 验证：保证class文件符合jvm的规范
 准备：为类中的静态变量分配内存并写0。比如static int a=123，则此时a=0，但如果加上final，则a=123
 解析：将常量池内的符号引用转换为直接引用
-初始化：执行类构造器（clinit方法），包括类变量的赋值和static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问。语句，编译器收集的顺序取决于源文件的顺序，static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问。
+初始化：执行类构造器（clinit方法），包括类变量的赋值和static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问。语句，编译器收集的顺序取决于源文件的顺序，static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问
 
-classLoader：判断两个类是否相等，需要这两个类是由同一个类加载器加载的前提下，即即时两个类来自同一个class文件，被同一个jvm加载，只要是不同的classloader加载，那它们就不是相等的。
+classLoader：判断两个类是否相等，需要这两个类是由同一个类加载器加载的前提下，即即时两个类来自同一个class文件，被同一个jvm加载，只要是不同的classloader加载，那它们就不是相等的
 三层类加载器：
 启动类加载器bootstrap classloader，加载java_home/lib目录下的jar包；
 扩展类加载器extension classloader，加载java_home/lib/ext目录下的jar包；
 系统类加载器application classloader，加载classpath下的jar包。
 双亲委派模型采用组合而非继承的方式实现，不会自己加载类，而是交给父类加载，父类无法加载时才会自己去加载。
 
-java内存模型与线程：处理器的高速缓存与主内存通过MESI协议保持一致性。java内存模型规定了所有变量都应该存储在主内存上，每个线程也可以有自己的工作内存，其中保存了被该线程使用的变量的主内存副本，线程对变量的操作都必须在工作内存中进行，而不能直接操作主内存中的数据，线程间变量值的传递都需要通过主内存来完成。java内存模型定义了8中操作：lock,unlock,read,load,use,assign,store,write。
+java内存模型与线程
+处理器的高速缓存与主内存通过MESI协议保持一致性。java内存模型规定了所有变量都应该存储在主内存上，每个线程也可以有自己的工作内存，其中保存了被该线程使用的变量的主内存副本，线程对变量的操作都必须在工作内存中进行，而不能直接操作主内存中的数据，线程间变量值的传递都需要通过主内存来完成。java内存模型定义了8中操作：lock,unlock,read,load,use,assign,store,write。
 
-volatile：有两个作用，一是保证变量对所有线程的可见性，即对volatile变量的写操作会立刻反应到其他线程之中，volatile变量在各个线程中是一致的；二是禁止指令重排序。
+volatile
+有两个作用，一是保证变量对所有线程的可见性，即对volatile变量的写操作会立刻反应到其他线程之中，volatile变量在各个线程中是一致的；二是禁止指令重排序。
 
 实现线程（非java线程）有三种方式：使用内核线程实现（1:1），使用用户线程实现（1:N），使用用户线程+轻量级进程混合实现（N:M）。
 内核线程由内核完成线程切换，每个内核线程可以视为内核的一个分身，程序一般不会直接使用内核线程，而是使用其高级接口：轻量级进程，即通常意义上的线程，由于轻量级进程会消耗内核资源（如内核线程的栈空间），因此一个系统支持的轻量级进程是有限的。java线程的实现通常采用轻量级进程，即1:1。
@@ -129,27 +165,38 @@ volatile：有两个作用，一是保证变量对所有线程的可见性，即
 
 线程调度的方式一般有协同式和抢占式，协同式指线程执行完任务后通知系统切换到另一个线程；抢占式由系统为每个线程分配执行时间，也是java采用的方式，java语言提供了10个线程优先级，但由于主流jvm的线程都是映射到系统的原生线程，因此调度最终还是由系统决定，且系统的优先级不一定能和java中的优先级一一对应，因此这不是一种稳定的调节手段。java定义了6中线程状态：new，runnable（包括操作系统线程状态中的running和ready，即可能运行，也可能等待分配时间片），waiting（Object.wait，Thread.join，LockSupport.park），timed waiting（Thread.sleep），blocked，terminated。
 
-互斥同步（悲观锁）：sync关键字编译后在同步块前后形成monitorenter和monitorexit两个指令。ReentrantLock(实现了Lock接口)增加了高级功能：等待可中断，公平锁（按申请时间获取锁，影响性能），绑定多个条件。
-非阻塞同步（乐观锁）：需要硬件指令集来实现，保证看起来多个操作的行为只通过一条命令即可完成。x86执行使用cmpxchg完成CAS功能。ABA问题可以通过加入版本来解决，不过总的来说比较鸡肋，ABA最好通过sync或Lock解决。
+互斥同步（悲观锁）
+sync关键字编译后在同步块前后形成monitorenter和monitorexit两个指令。ReentrantLock(实现了Lock接口)增加了高级功能：等待可中断，公平锁（按申请时间获取锁，影响性能），绑定多个条件。
+
+非阻塞同步（乐观锁）
+需要硬件指令集来实现，保证看起来多个操作的行为只通过一条命令即可完成。x86执行使用cmpxchg完成CAS功能。ABA问题可以通过加入版本来解决，不过总的来说比较鸡肋，ABA最好通过sync或Lock解决。
+
 无同步方案：一个方法不涉及共享数据，天生线程安全。比如可重入代码（相同的输入，得到相同的输出），线程本地存储。
 
-sync锁优化：
+sync锁优化
 自旋锁与自适应自旋：获取不到锁时不会直接挂起，而是先自旋尝试获取，无法获取才挂起；自旋的时间不是固定的，而是由上一次的自旋时间及锁的持有者的状态决定。
 
-锁消除：一些代码加了锁，通过逃逸分析，判断堆上的数据不会逃逸出去被其他线程访问，因此去掉锁。很多锁不是程序员加上的，比如String s=String s1+String s2+String s3，JDK5之前会转换为stringbuilder.append。解释执行（java编译器生成平台无关的字节码，解释器逐句翻译成机器码）时会加锁，但服务端编译器即时编译（JIT，运行过程中将热点代码hot spot编译成机器码）后会去掉锁。
+锁消除
+一些代码加了锁，通过逃逸分析，判断堆上的数据不会逃逸出去被其他线程访问，因此去掉锁。很多锁不是程序员加上的，比如String s=String s1+String s2+String s3，JDK5之前会转换为stringbuilder.append。解释执行（java编译器生成平台无关的字节码，解释器逐句翻译成机器码）时会加锁，但服务端编译器即时编译（JIT，运行过程中将热点代码hot spot编译成机器码）后会去掉锁。
 
-锁粗化：继续使用上面的例子，反复对一个对象加锁和解锁，甚至在循环加锁，jvm会扩大加锁范围。
+锁粗化
+继续使用上面的例子，反复对一个对象加锁和解锁，甚至在循环加锁，jvm会扩大加锁范围。
 
-锁升级：对象头的mark word字段中，有3bit（2个标志位，1个偏向位）用于表示锁的状态。进程启动后前4秒创建的对象为无锁，后4秒创建的对象为可偏向但没偏向的锁。
+锁升级
+对象头的mark word字段中，有3bit（2个标志位，1个偏向位）用于表示锁的状态。进程启动后前4秒创建的对象为无锁，后4秒创建的对象为可偏向但没偏向的锁。
 获取锁时，若可偏向（标志位01，偏向位1），比较当前线程id是否位markword中记录的，若是则获取到偏向锁并执行同步方法；若不是则尝试通过cas获取。cas成功时更新线程id并执行同步方法；不成功时撤销偏向位（偏向位0），锁置为未锁定（标志位01）或轻量级锁（标志位00）。
 加轻量级锁先将markword的内容复制到帧栈（可理解为快照），然后通过cas更新markword，成功则获取到轻量级锁；失败则升级为重量级锁。
 
-sync和ReentrantLock的区别：sync无需手动释放锁及处理异常，lock需要释放并处理异常；sync是关键字，jvm后续版本可通过底层机制优化，lock主要通过代码实现，优化空间有限；lock可设置等待超时时间，支持公平锁（性能急剧下降），可绑定多个条件。
+sync和ReentrantLock的区别
+sync无需手动释放锁及处理异常，lock需要释放并处理异常；sync是关键字，jvm后续版本可通过底层机制优化，lock主要通过代码实现，优化空间有限；lock可设置等待超时时间，支持公平锁（性能急剧下降），可绑定多个条件。
 
-逃逸分析：hotspot会分析一个新对象的使用范围，决定把对象分配在堆或者栈上（不逃逸的对象可能分配在栈上）
-标量替换：在逃逸分析的基础上的优化。对象由多个字段组成，这些字段可看为标量，不直接为对象分配内存，而是在栈上为标量分配空间
+逃逸分析
+hotspot会分析一个新对象的使用范围，决定把对象分配在堆或者栈上（不逃逸的对象可能分配在栈上）
 
-jvm主要组成部分：
+标量替换
+在逃逸分析的基础上的优化。对象由多个字段组成，这些字段可看为标量，不直接为对象分配内存，而是在栈上为标量分配空间
+
+jvm主要组成部分
 类加载子系统：根据全限定类名将class文件加载到运行时数据区
 执行引擎：执行class指令
 运行时数据区：平时说的jvm内存
@@ -165,26 +212,27 @@ WebApp ClassLoader打破了传统的双亲委派机制，会先自己加载，�
 
 ========================多线程及并发========================
 
-创建线程的方式：
+创建线程的方式
 继承Thread并重写run方法
 实现Runnable接口并作为参数传给thread
 实现Callable接口并作为参数传给FutureTask，再把FutureTask传递给thread
 线程池创建任务实现Runnable或Callable
 
-如何停止一个正在运行的线程：使用自定义的标识，即正常退出；stop强行停止，已废弃；interrupt，设置标志位，线程并不会立即停止，而是在合适的时机检查标志位
+如何停止一个正在运行的线程
+使用自定义的标识，即正常退出；stop强行停止，已废弃；interrupt，设置标志位，线程并不会立即停止，而是在合适的时机检查标志位
 
-java线程池中常用的队列有哪些：下面三个都是guc下的
+java线程池中常用的队列有哪些
+下面三个都是guc下的
 ArrayBlockingQueue，基于数组的有界阻塞队列，FIFO，创建时指定大小，线程安全，通过add（抛异常）、offer（返回false）、put（线程被阻塞直到有空位）方法插入元素，括号内为队列满时的处理方式；通过poll（返回null）、take（线程等待）获取并移除头部的元素
-
 LinkedBlockingQueue，基于链表的有界或可选无界的阻塞队列，FIFO，不指定容量时为整数最大值
-
 SynchronousQueue，特殊的队列，容量为0，元素直接从生产者给消费者，无缓冲。Executors.newCachedThreadPool()内部就使用了该队列，适合大量短期异步任务，潜在问题是允许创建的线程无上线，可能耗尽系统资源。应用场景：线程之间直接传递数据，没有延迟
 
-threadLocal：
+threadLocal
 使用弱引用的原因：若使用强引用，threadlocal对象的引用设置为null时，threadlocalmap仍指向了threadlocal对象，导致不会回收，使用弱引用则会正常回收
 内存泄露的原因：threadlocal对象被回收后，map的key为null，但值仍存在，生命周期和线程一致。所以使用完threadlocal后，要调用remove清除键值对。另外线程可能复用，若不清除，线程下次复用时，threadlocal仍保存之前的值，导致混乱
 
-AQS：一个抽象类，位于guc的Lock包下，为锁和同步器提供了通用的框架。提供了排他锁和共享锁、公平锁和非公平锁等制。使用了int类型的state变量记录锁竞争的状态，不同子类实现中有不同的含义
+AQS
+一个抽象类，位于guc的Lock包下，为锁和同步器提供了通用的框架。提供了排他锁和共享锁、公平锁和非公平锁等制。使用了int类型的state变量记录锁竞争的状态，不同子类实现中有不同的含义
 在reentrantLock中，state 0表示没有线程竞争锁资源，>=1表示有线程持有锁
 线程获取锁时，若state=0，使用cas更新为1，多个线程同时抢锁时，抢锁失败的线程会调用Unsafe.park方法进行阻塞，打包成node节点（双向链表，FIFO，包含Thread属性），插入到链表的末尾；锁释放后，会唤醒双向链表头一个阻塞的线程（并不是头节点，头节点是傀儡节点）
 公平锁和非公平锁的区别：两者在获取锁时都会判断state是否为0，公平锁还会判断队列中是否有阻塞的线程，然后cas一次进行抢锁
@@ -193,42 +241,256 @@ AQS：一个抽象类，位于guc的Lock包下，为锁和同步器提供了通�
 
 Autowired和Resource注解的区别
 两者都是用来做bean的注入
-Autowired默认按类型注入
-Resource不是spring的注解，spring只是支持。
+Autowired默认按类型注入，若有多个类型则根据名称查找（也可以手动指定名称@Qualifier）
+Resource不是spring的注解，spring只是支持。默认按照名称（加了注解的变量的名称）注入，名称找不到时按类型注入
 
+依赖注入的几种方式
+比如有一个类A，有属性B，并提供了有参构造器
+1.构造器注入，即在A的有参构造器上添加@Auaowired注解，spring官方推荐的方式。特定是B为final时也可注入；A初始化初始化完成后即可使用；可检测循环依赖
+2.setter注入，即在setB方法上加注解。特定是B为final时无法注入；A初始化完成后B未注入，不能直接使用；可检测循环依赖
+3.属性注入，也是最常用的注入，直接在B上加注解。特点和上面一样
+
+MVC的工作流程
+1.用户发送请求至DispatcherServlet类，调用doService方法，doService又会调用doDispatch方法，下面的流程都在doDispatch内
+2.检查请求是否为文件上传请求，若是则解析为multipartRequest
+3.获得HandlerExecutionChain，即mappedHandler，内部包含handler，多个interceptor。DispatcherServlet内有一个List<HandlerMapping>，HandlerMapping有方法getHandler，遍历集合返回第一个非空的handler。是根据url查找的
+4.获取HandlerAdapter，即ha。DispatcherServlet内有一个List<HandlerAdapter>，遍历集合，检查HandlerAdapter能否支持handler，返回第一个能支持的
+5.HandlerExecutionChain执行applyPreHandle，即调用handle前先执行预方法，主要是调用拦截器
+6.HandlerAdapter执行handle方法（由处理器即controller执行），返回ModelAndView。若加了@ResponseBody注解，则在handle方法中将结果以json格式写入response中，同时返回的mvc为null
+7.HandlerExecutionChain执行applyPostHandle，即调用handle后再执行方法，同样是拦截器
+8.检查上述过程是否有异常，有异常则将异常转换为mvc
+9.若ModelAndView不为null，则解析为view。DispatcherServlet内有一个List<ViewResolver>，实现了resolveViewName方法（返回view），遍历并解析，返回第一个能解析成功的view
+10.对view渲染（render），将model转换为response
+11.返回response
+总结：DispatcherServlet是整个流程的控制中心。HandlerMapping通过拓展实现了不同的映射方式。
+
+MVC常用的注解及作用
+@RestController：Controller和ResponseBody的组合，默认返回json而不是视图
+@ResponseBody：将方法的返回值作为http的body返回，而不是解析为视图名称
+
+aop的核心概念
+连接点：可以理解为现有的业务代码。比如我想在A接口的doService前打log，则AImpl的doService方法就是连接点
+切面：和aop相关的方法、定义都放在一个类里，在类上加@Aspect注解，这个类就叫切面，如果某天不需要aop了，直接删除这个类就好了
+切点：在切面中定义一个方法，加上@Pointcut注解，表达式为execution(* com.example.service.A.doService(..))，即筛选连接点
+通知：切面在特定连接点上执行的方法，包括前置通知，后置通知等
+核心关注点：与业务逻辑直接相关的主要功能，比如登录、下单
+横切关注点：与业务逻辑没有直接关联，但在整个系统中广泛存在，且需要统一处理，比如日志打印。aop的目的就是把横切关注点从核心关注点中分离出来
+
+对AOP的理解
+spring aop是基于动态代理的，若被代理对象实现了接口，则使用jdk动态代理；否则使用cglib。若没有配置aop，则普通的bean（比如常见的Controller）为非代理对象
+
+jdk代理
+要求被代理对象实现了接口，基于反射实现，采用组合的方式，无法代理静态方法，运行时动态创建代理对象，性能低
+需要实现InvocationHandler类并重写invoke方法，增强的逻辑都在invoke中实现。创建代理类时的参数：被代理类的classloader，接口，InvocationHandler对象。在调用代理类时，实际会调用InvocationHandler的invoke方法
+若被代理类A方法内部调用B方法，则通过invoke调用A时，实际是被代理类执行A方法，不是代理类执行B方法，因此B的增强方法不会执行。总结：jdk代理类自调用时不会走增强方法
+
+cglib代理
+修改被代理类的字节码生成子类，性能高，无法对final、private方法代理。子类对象有一个MethodInterceptor对象，增强的逻辑都在这里实现，为空时执行父类方法；不为空时执行MethodInterceptor的方法
+
+spring aop和aspectj aop的区别
+spring是运行时增强，基于代理；aspectj是编译时增强，基于字节码操作
+
+spring aop失效的场景
+1.对private、protected方法增强
+2.自调用
+
+spring bean的生命周期
+定义：读取配置文件（xml，注解等）解析bean definition并注册到BeanDefinitionRegistry
+实例化：根据bean definition通过反射创建bean对象。单例bean在spring启动时就实例化，原型在请求获取bean时才实例化
+设置对象属性：根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean。即populateBean方法
+初始化：即initializeBean方法
+    检测bean是否实现了XXXAware接口
+        BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
+        BeanFactoryAware同理，调用setBeanFactory
+        ApplicationContextAware同理，调用setApplicationContext
+    执行BeanPostProcessor的前置方法。BeanPostProcessor是spring提供的一个拓展接口
+    若bean实现了InitializingBean接口，调用afterPropertiesSet，用于属性设置完成后做一些操作
+    执行自定义的初始化方法：比如@PostConstruct（这不是spring的注解，spring只是支持）或@Bean中指定了init-method方法
+    BeanPostProcessor的后置方法，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
+销毁：
+    若实现了DisposableBean，则调用destroy方法
+    执行自定义的销毁方法：@PreDestroy或@Bean指定了destroy-method
+
+spring bean的作用域
+单例，默认；原型，为每个请求创建一个实例；request，为每个网路请求创建一个实例；session，保证每个session中有一个实例；global-session
+
+ApplicationContext和BeanFactory的区别
+两者都是用于管理bean，BeanFactory是最基础的bean接口，定义了管理bean的方法，比如getBean。ApplicationContext继承了BeanFactory，实现了更多接口以提供更多功能，如MessageSource（国际化），ResourceLoader（资源加载），ApplicationEventPublisher（时间发布）
+
+单例bean是线程安全的吗
+spring本身没有对单例bean做任何多线程的封装处理，线程安全问题是开发人员要考虑的，spring不关心
+
+spring三级缓存
+一级：private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+缓存已经初始化好的单例bean。当获取bean时，从该缓存中查找，存在则返回。key是bean的名称
+
+二级：private final Map<String, Object> earlySingletonObjects = new HashMap<>(16);
+存储早期暴露的单例bean。当bean实例化完成但未属性填充及初始化时，spring将单例bean放入该缓存中，主要是为了解决循环依赖
+
+三级：private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+存储单例bean的工厂对象。通过ObjectFactory可以获取早期单例bean对象，主要是为了解决AOP代理创建等问题，提供了延迟生成bean的机制
+
+spring如何解决循环依赖
+假设AB存在循环依赖。
+spring实例化A，并把A的工厂对象放入三级缓存中
+填充A的属性，发现A依赖B，于是创建B
+实例化B，同样把B的工厂对象加入三级缓存
+填充B属性，发现B依赖A，从一级缓存找A，不存在；从二级缓存中查找A，不存在；则在三级缓存中查找，能找到，将A从三级缓存中移除，放到二级缓存
+将早期的A注入到B的属性中，完成B的属性填充及初始化，放入一级缓存
+将B注入A的属性中，完成A的属性填充及初始化，放入一级缓存
+
+第三级缓存的作用
+如果只是为了解决循环依赖，二级缓存就够了，第三级缓存是为了考虑到AOP
+正常没有循环依赖时，bean初始化完成后创建代理对象
+有循环依赖时，代理对象的创建会提前放到早期暴漏阶段（即第二级缓存）
+仍然以上面为例，A的工厂对象放入三级缓存中，创建B时，需要注入A
+1.若不提前放到早期暴漏阶段，从三级缓存获取A的工厂对象，工厂返回的是A的原始对象，即B.A为原始对象。后续A完成初始化被替换为代理对象，导致和B.A不一致
+2.若提前放到早期暴漏阶段，从工厂对象中获取A，即调用ObjectFactory.getObject()时，会检查是否需要创建代理对象，若需要则在此阶段创建代理对象，并将代理对象放入二级缓存，即B.A为代理对象。A的后续创建都使用代理对象，A和B.A一致
+
+理论上，在实例化阶段检查是否需要代理，也可以只需要二级缓存，但会违反单一职责的思想 --> 实例化应只做实例化应做的事，不应考虑代理的事
+
+spring事务传播机制
+required：默认，若当前存在事务则加入，不存在则新建
+requireNew：无论当前事务是否存在，都新建事务，新老隔离
+nested：若存在当前事务，则嵌套，否则新建
+数据库一般都支持保存点（savePoint），允许在事务中设置一个标志点，回滚时只回滚到这个标志点而不是整个事务
+spring的嵌套就是基于此实现的，开启嵌套事务时，在父事务中创建保存点，回滚时只回滚到这个保存点，不影响父事务之前的操作，但若父事务回滚，则子事务也会回滚
+其他的不列出来了，一般都使用默认的级别
+
+spring事务的实现方式
+声明式事务：传统的事务实现中，需要手动地开启、提交、回滚。而spring声明式事务允许开发者通过声明的方式来定义事务，不需要手动编写代码来管理事务。具体实现是基于AOP，使用方式是XML或注解@Transactional
+编程式事务：开发在业务代码中手动调用提交、回滚等操作。相比于声明式事务，更加灵活，但也更加难以维护
+
+spring启动流程
+创建SpringApplication实例
+    检查是否为web应用
+    查找并加载初始化器（ApplicationContextInitializer）
+    查找并加载应用监听器（ApplicationListener）
+调用SpringApplication的run方法
+    准备环境（Environment）
+        加载各种配置源，比如application.properties
+        根据配置信息创建Environment对象
+    创建ApplicationContext实例（根据之前判断的应用类型创建不同实例）
+    准备ApplicationContext
+        绑定环境
+        初始化器（ApplicationContextInitializer）对ApplicationContext进行初始化
+    刷新ApplicationContext
+        obtainFreshBeanFactory：创建或获取一个新的 BeanFactory 实例，如果是xml配置文件，还会解析bean definition
+        prepareBeanFactory：配置 BeanFactory，比如添加BeanPostProcessor
+        postProcessBeanFactory：后置处理 BeanFactory，允许子类对BeanFactory做一些额外处理，比如基于注解的ApplicationContext会解析bean definition
+        invokeBeanFactoryPostProcessors：调用 BeanFactoryPostProcessor 对 BeanFactory 进行后置处理，允许在 Bean 实例化之前修改 Bean 定义
+        registerBeanPostProcessors：注册 BeanPostProcessor，其可用于在 Bean 实例化、属性注入前后进行额外的处理
+        initMessageSource：初始化 MessageSource，可用于国际化
+        initApplicationEventMulticaster：初始化事件广播器，用于发布和处理应用程序事件
+        onRefresh：允许子类做一些刷新操作
+        registerListeners：注册事件监听器，查找并注册所有实现了 ApplicationListener 接口的 Bean，将它们注册到事件广播器中，以便监听和处理应用程序事件
+        finishBeanFactoryInitialization：实例化所有剩余的单例 Bean。如果是 Web 应用，会初始化 EmbeddedWebServer
+    调用CommandLineRunner或ApplicationRunner接口
+
+此外整个过程中会发布各种事件
+
+========================mybatis========================
+
+#{}和${}的区别
+#{}是预编译处理，可以防止sql注入，${}是字符串替换
+
+缓存机制
+一级缓存（也叫localCache、本地缓存）
+一级缓存的生命周期和sqlsession一致，在同一个sqlsession中，执行相同的查询，先查缓存，查不到则查db并缓存。不同的sqlsession不共享
+sqlsession内包含一个executor，executor内有一个LocalCache
+
+二级缓存
+如果多个sqlsession之间需要共享缓存，则使用二级缓存。开启二级缓存后，在查询一级缓存前先查询二级缓存
+
+mapper是接口没有实现类，为何还可以调用
+mybatis使用jdk动态代理生成代理对象（根据xml），调用时实际是调用的代理对象的方法
+
+========================spring boot========================
+
+springboot不需要独立的容器也能运行，因为内嵌了各种servlet容器如tomcat，不再需要打成war包，只需要打成jar包就能独立运行
+
+springboot的核心注解是哪个
+启动类上面的注解是@SpringBootApplication，它也是 Spring Boot的核心注解，它包含下列注解
+@SpringBootConfiguration：继承自 @Configuration 注解，用于标记当前类是一个配置类
+@EnableAutoConfiguration：自动配置的核心注解
+@ComponentScan
+
+@Configuration是配置类的注解，作用类似于传统xml文件，可以在其中定义bean及其他配置。加了这个注解的类会生成cglib代理对象，这个类中加了@Bean的方法返回的是单例bean
+示例：
+@Configuration
+public class AppConfig {
+    @Bean
+    public MyService myService() {return new MyService(myRepository());}
+    @Bean
+    public MyRepository myRepository() {return new MyRepository();}
+}
+调用myService()方法时，myRepository()返回的是单例bean，而不会新建一个bean。
+如果把@Configuration换成@Component，则不会生成cglib代理对象而是原始对象，调用myService()方法时会创建新的MyRepository对象
+
+如何理解starter
+启动器，一站式解决依赖集合。传统的spring开发中，引入某个功能时，需要手动添加依赖并手动解决版本兼容问题，而使用starter只用添加一个starter依赖即可解决依赖及版本的问题
+springboot的官方启动器都是以spring-boot-starter-命名的。要构建一个简单的 Web 应用，添加spring-boot-starter-web依赖即可
+
+springboot配置加载顺序
+1.yaml先加载。properties后加载，覆盖yaml，因此properties的优先级比yaml高
+2.命令行参数
+3.操作系统环境变量
+例：命令行和yaml配置冲突，命令行的优先级更高
+
+为何springboot的jar可以直接运行
+springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
+打出来的是Fat jar，包含各种jar包
+java -jar会读取manifest文件中的main class（这是jvm的规范）JarLauncher，读取jar包并启动manifest中的start-class类
 
 ========================数据库及mysql========================
 
-一致性：事务执行前后，数据库的完整性没有遭到破坏。可理解为逻辑上保持正确，比如转账后余额不能小于0，转账前后双方余额总额一致。
+一致性
+事务执行前后，数据库的完整性没有遭到破坏。可理解为逻辑上保持正确，比如转账后余额不能小于0，转账前后双方余额总额一致。
 
-可重复读：事务多次读取同样的记录，结果是一致的，但无法解决幻读问题。
+可重复读
+事务多次读取同样的记录，结果是一致的，解决了不可重复度，但无法解决幻读问题。
 
-幻读：可重复读及以下的隔离级别下，事务多次进行范围读取，返回的行数不一致（其他事务插入数据并提交）。mysql通过间隙锁解决了幻读的问题。
+幻读
+可重复读及以下的隔离级别下，事务多次进行范围读取，返回的行数不一致（其他事务插入数据并提交）。mysql通过间隙锁解决了幻读的问题。
 
-死锁：多个事务在同一资源上相互占用并请求锁定对方占用的资源。innodb的处理方法是将持有最少行级排他锁的事务回滚。
+不可重复度和幻读的区别
+比如查询某条数据，可重复读的结果都是一致的，即解决了不可重复度；但统计数据总数，两次统计之间有数据插入，则统计到的结果不同，即发生了幻读
 
-事务日志：存储引擎修改表数据时修改内存中的拷贝，再把修改行为记录到硬盘的事务日志中，采用追加的方式，顺序IO。事务日志持久化后，内存修改的数据再慢慢刷回磁盘，也成为write ahead log，修改数据要写两次磁盘。
+死锁
+多个事务在同一资源上相互占用并请求锁定对方占用的资源。innodb的处理方法是将持有最少行级排他锁的事务回滚。
 
-隐式和显式锁定：innodb可以在事物执行中随时锁定，只有提交或回滚时才会释放锁，且所有的锁都是同一时刻释放，可以用select xx lock in share mode或select xx for update显式加锁。begin及commit只影响是否手动开启事务，不影响锁，手动开启事务中select默认也是不加锁。
+事务日志
+存储引擎修改表数据时修改内存中的拷贝，再把修改行为记录到硬盘的事务日志中，采用追加的方式，顺序IO。事务日志持久化后，内存修改的数据再慢慢刷回磁盘，也成为write ahead log，修改数据要写两次磁盘。
 
-范式：1.每个列不可再分割，比如“电话邮箱”列可继续分割，不符2.非主属性完全依赖于主键，而不是主键的一部分，比如主键为省+市，则省级单位只依赖于省而不依赖于市，不符3.非主属性不传递依赖于主键，比如A决定B，B决定C，ABC在同一张表中则不符
+隐式和显式锁定
+innodb可以在事物执行中随时锁定，只有提交或回滚时才会释放锁，且所有的锁都是同一时刻释放，可以用select xx lock in share mode或select xx for update显式加锁。begin及commit只影响是否手动开启事务，不影响锁，手动开启事务中select默认也是不加锁。
 
-锁：mysql按排他性可分为读锁、写锁和意向锁，按粒度可分为表锁、记录锁（record lock）、间隙锁（gap lock）、临键锁（next-key lock）等。如果查询条件使用了唯一索引，则使用记录锁；使用普通索引，使用间隙锁，间隙锁唯一的作用是阻止其他事务向间隙中插入数据，即幻读，所以不区分共享或者排他，功能也是一致的；临键锁为记录锁和间隙锁的组合。可以在performance_schema.data_locks、show engine innodb status查看事务持有锁的情况
+范式
+1.每个列不可再分割，比如“电话邮箱”列可继续分割，不符2.非主属性完全依赖于主键，而不是主键的一部分，比如主键为省+市，则省级单位只依赖于省而不依赖于市，不符3.非主属性不传递依赖于主键，比如A决定B，B决定C，ABC在同一张表中则不符
 
-读已提交时：不需要防范幻读，所以gap锁不生效，则next-key lock也不生效。使用快照读，查询不到数据时只会加表级意向锁；查询到数据时在索引及主键上加记录锁REC_NOT_GAP
+锁
+mysql按排他性可分为读锁、写锁和意向锁，按粒度可分为表锁、记录锁（record lock）、间隙锁（gap lock）、临键锁（next-key lock）等。如果查询条件使用了唯一索引，则使用记录锁；使用普通索引，使用间隙锁，间隙锁唯一的作用是阻止其他事务向间隙中插入数据，即幻读，所以不区分共享或者排他，功能也是一致的；临键锁为记录锁和间隙锁的组合。可以在performance_schema.data_locks、show engine innodb status查看事务持有锁的情况
 
-可重复读时：都会在表上添加意向锁，在主键加记录锁（S,REC_NOT_GAP或者X,REC_NOT_GAP），故下文省略，主要考察对索引加锁
+读已提交时
+不需要防范幻读，所以gap锁不生效，则next-key lock也不生效。使用快照读，查询不到数据时只会加表级意向锁；查询到数据时在索引及主键上加记录锁REC_NOT_GAP
+
+可重复读时
+都会在表上添加意向锁，在主键加记录锁（S,REC_NOT_GAP或者X,REC_NOT_GAP），故下文省略，主要考察对索引加锁
 索引等值查询：值存在时，索引加REC_NOT_GAP锁；值不存在时，在索引上加gap锁，比如索引值为2和5，查询索引值为4的数据时，2-5这个区间会加上gap lock，另一个事务插入索引值为3的数据时会阻塞
 索引范围查询：在索引上加临键锁（S或者X），包括前后索引值也会加
 
-两阶段锁定：事务执行期间，随时都可以获取锁，但锁只有在提交或回滚后才会释放，且所有锁都会释放
+两阶段锁定
+事务执行期间，随时都可以获取锁，但锁只有在提交或回滚后才会释放，且所有锁都会释放
 
-当前读：select for update/share，insert、update等，会加锁
-快照读：select MVCC非阻塞式读
+当前读
+select for update/share，insert、update等，会加锁
+快照读
+select MVCC非阻塞式读
 
 每个事务在第一次读取任何数据时分配一个事物ID（增删改查，注意查也会生成）
 
-MVCC：行级锁的变种，RC和RR生效，用于保证隔离性。由三部分组成：隐藏字段、undo版本链、readview
+MVCC
+行级锁的变种，RC和RR生效，用于保证隔离性。由三部分组成：隐藏字段、undo版本链、readview
 隐藏字段：主要包括操作这条数据的事务id（trx_id，每个事务在第一次读取任何数据时分配一个事物ID（增删改查，注意查也会生成））和指向该数据前一个版本的指针（事务修改记录时，向undolog写入一条记录，记录如何恢复，事务的回滚指针指向该undolog）
 undolog版本链：同一条数据的不同版本组成的链条，在undo log中维护
 readview：用于控制具体选择哪个版本，包含：当前活跃的事务id集合、预分配事务id，即当前最大事务id+1，max_trx_id、最小活跃事务id，min_trx_id、readview创建者的事务id。
@@ -236,36 +498,45 @@ readview：用于控制具体选择哪个版本，包含：当前活跃的事务
 版本链的数据访问规则：1.当前事务id==readview创建者的事务id时，可见2.当前事务id<最小id，可见3.当前事务id>最大id，不可见4.当前事务id在最大最小之间（min<=tx<=max），如果在活跃事务id集合，说明当时事务还未提交，不可见，否则可见。
 RR使用mvcc不能完全避免幻读。连续多个快照读，readview复用，不会幻读；但如果在快照读之后使用当前读，readview会在当前读时重新生成，产生幻读。
 
-三大日志：undo log、redo log、bin log。bin log是mysql服务器层保存的，另外两个是innnodb特有的。
+三大日志
+undo log、redo log、bin log。bin log是mysql服务器层保存的，另外两个是innnodb特有的。
 
-优化数据结构：尽量避免保存null，如果查询中包含可为null的列，则索引、索引统计和值比较更复杂，使得mysql更难优化。更小的通常更好。简单为好，比如使用mysql内置的时间格式而不是字符串
+优化数据结构
+尽量避免保存null，如果查询中包含可为null的列，则索引、索引统计和值比较更复杂，使得mysql更难优化。更小的通常更好。简单为好，比如使用mysql内置的时间格式而不是字符串
 整数类型：tinyint,smallint,mediumint,int,bigint，他们使用8-64位的存储空间。可以指定整数的宽度，但只是影响显示字符的个数，对于计算和存储没有影响
 字符串类型：VARCHAR使用1或2个字节保存字符串长度；CHAR在保存时会删除所有末尾的空格
 BLOB和TEXT的唯一区别是BLOB保存二进制，没有排序规则或字符集，但TEXT有
 DATETIME是没有时区的
 
-索引类型：B+ tree；自适应哈希索引，innodb发现某些索引值被频繁访问时，会在原有b+树索引之上，再建一个哈希索引，这个过程是完全自动化，用户无法控制或配置，但是可以关闭该特性
+索引类型
+B+ tree；自适应哈希索引，innodb发现某些索引值被频繁访问时，会在原有b+树索引之上，再建一个哈希索引，这个过程是完全自动化，用户无法控制或配置，但是可以关闭该特性
 三星系统评价：若索引将相关记录放在一起则为一星；若索引中的数据顺序和查找中的排列顺序一致则二星；若索引中的列包含查询需要的全部列则为三星
 索引的选择度：不重复的索引值/记录总数，范围从1/t到1之间，越大则查询效率越高。但只看平均选择度是不够的，因为数据分布可能是不均匀的
 前缀索引：只对字段的前一部分字符进行索引。前缀长度的选择，可以先计算列的选择度，然后逐步加大前缀的长度，使得前缀的选择度接近列的选择度
 索引合并：一定程度上使用表的多个单列索引定位指定行，有三个变种：OR的联合，AND的相交，前两种的组合。以where a=xx or b=xx为例，explain的extra列中会显示Using union(idx_a,idx_b)；
 
-主键：若没有定义主键，innodb会选择非空唯一索引来代替，若没有，会隐式定义一个主键
+主键
+若没有定义主键，innodb会选择非空唯一索引来代替，若没有，会隐式定义一个主键
 何时不适合主键顺序插入：高并发场景，按主键顺序插入可能造成写入竞争，主键的上界成为热点，导致gap lock的竞争。注意这里不是主键自增
 
-主键自增：可修改innodb_autoinc_lock_mode参数：传统模式，持有特殊的表级锁（自增锁）直到插入完毕，无论单条还是批量；连续模式，对于大多数的新增，使用轻量级的互斥锁而非表级锁生成主键，互斥锁只在生成主键的瞬间持有，但对于特殊的插入，比如insert select，使用表级锁；交错模式，为每个插入线程分配一个自增主键值的范围，然后在这个范围内生成自增主键，范围用完后，向innodb申请新的范围
+主键自增
+可修改innodb_autoinc_lock_mode参数：传统模式，持有特殊的表级锁（自增锁）直到插入完毕，无论单条还是批量；连续模式，对于大多数的新增，使用轻量级的互斥锁而非表级锁生成主键，互斥锁只在生成主键的瞬间持有，但对于特殊的插入，比如insert select，使用表级锁；交错模式，为每个插入线程分配一个自增主键值的范围，然后在这个范围内生成自增主键，范围用完后，向innodb申请新的范围
 
-排序：mysql有两种方式生成有序结果：排序操作，或者按索引顺序扫描。type列为index，则使用了索引扫描，extra列包含Using filesort，则进行了排序，内存够时在内存中排序，内存不足时将数据分为很多小部分，每个部分排序然后保存在磁盘，然后合并。排序时会申请行数据的最大空间，比如varchar按最大长度，utf8mb4按4字节申请。如果索引包含a，b，则order by a desc,b desc的extra包含Backward index scan
+排序
+mysql有两种方式生成有序结果：排序操作，或者按索引顺序扫描。type列为index，则使用了索引扫描，extra列包含Using filesort，则进行了排序，内存够时在内存中排序，内存不足时将数据分为很多小部分，每个部分排序然后保存在磁盘，然后合并。排序时会申请行数据的最大空间，比如varchar按最大长度，utf8mb4按4字节申请。如果索引包含a，b，则order by a desc,b desc的extra包含Backward index scan
 
-叶子节点：聚集索引包含主键列、事务ID、回滚指针、剩余列；二级索引包含主键值
+叶子节点
+聚集索引包含主键列、事务ID、回滚指针、剩余列；二级索引包含主键值
 
-行转列：case when
+行转列
+case when
 
-explain：type值包含eq_ref（主键或唯一索引等值查询）ref（非唯一索引等值查询）range（索引范围查询）index（全索引扫描）ALL（全表扫描）；key_len可用于判断索引的使用情况；extra包含using index；实际执行explain analyze
+explain
+type值包含eq_ref（主键或唯一索引等值查询）ref（非唯一索引等值查询）range（索引范围查询）index（全索引扫描）ALL（全表扫描）；key_len可用于判断索引的使用情况；extra包含using index；实际执行explain analyze
 
 DDL会隐式提交事务
 
-分布式事务：
+分布式事务
 包括XA，TCC，最终一致性等。
 
 XA：是一种协议，定义了事务协调者和局事务参与者的接口。
@@ -280,35 +551,20 @@ TCC由一系列子事务组成，每个子事务都需要实现try-confirm-cance
 
 最终一致性方案：适用于资源不需要回滚，只需要一致性的情景，比如数据清理。通过不断重试最终完成，实现弱一致性。
 
-========================springboot========================
-
-为何springboot的jar可以直接运行
-springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
-打出来的是Fat jar，包含各种jar包
-java -jar会读取manifest文件中的main class（这是jvm的规范）JarLauncher，读取jar包并启动manifest中的start-class类
-
-
-启动流程
-运行main方法，初始化SpringApplication，从spring.factories中读取listener，ApplicationContextInitializer
-运行run方法
-prepareEnvironment（读取环境变量，配置信息）
-createApplicationContext
-prepareContext，初始化initializer
-预初始化上下文：读取启动类-BeanDefination
-refresh加载ioc容器
-	invokeBeanFactoryPostProcessor 加载所有的自动配置类
-	onRefresh 创建内置的servlet容器（Tomcat）
-
-
 ========================中间件========================
 
-缓存穿透：查询不存在的数据，导致请求打到db
-缓存击穿：热点数据在缓存中失效，所有请求瞬间打到db。可以加入互斥锁，缓存失效时上锁，查db，写缓存，释放锁；其他线程请求时sleep一会。
-缓存雪崩：缓存集中在一段时间失效
+缓存穿透
+查询不存在的数据，导致请求打到db
+
+缓存击穿
+热点数据在缓存中失效，所有请求瞬间打到db。可以加入互斥锁，缓存失效时上锁，查db，写缓存，释放锁；其他线程请求时sleep一会
+
+缓存雪崩
+缓存集中在一段时间失效
 
 ========================网络及安全========================
 
-TCP三次握手：
+TCP三次握手
 第一次：客户端->服务器，SYNC=1，生成随机序列号ISN A
 第二次：服务器->客户端，SYNC=ACK=1，生成ISN B，同时ack number=A+1
 第三次：客户端->服务器，ACK=1，ack number=B+1，ISN=A+1
@@ -317,17 +573,20 @@ TCP三次握手：
 全连接队列：三次握手成功后连接从半连接队列转移至全连接队列。
 
 
-传统手写签名有两个作用：1.证明签名者的身份（笔迹鉴定）2.表明签名者认可签名的内容（肉眼观察）。数字签名有同样的作用，但实现方式不同：1.使用数字证书证明身份2.对比文件hash值
+传统手写签名有两个作用
+1.证明签名者的身份（笔迹鉴定）2.表明签名者认可签名的内容（肉眼观察）。数字签名有同样的作用，但实现方式不同：1.使用数字证书证明身份2.对比文件hash值
 
-数字签名：
+数字签名
 签名过程：小明对明文计算摘要（sha256），然后用私钥加密得到密文，将明文、密文、公钥一同发布到互联网。计算摘要是为了提高效率，同时有些算法无法处理太长的明文
 验证过程：小红用公钥解密，得到摘要A，对明文计算摘要得到B，比较AB是否相等
 缺陷：数字签名可以保证内容不被篡改，但无法保证公钥为小明创建的。
 
-数字证书：作用是证明公钥的生成者为小明。小明将公钥及身份信息发给权威的CA机构，CA颁发给小明一个证书，其中包含了公钥和身份信息，并用CA私钥加密。小明将证书发布到互联网，小红就可以通过CA公钥证明哪个证书是小明的，从而确定公钥。
+数字证书
+作用是证明公钥的生成者为小明。小明将公钥及身份信息发给权威的CA机构，CA颁发给小明一个证书，其中包含了公钥和身份信息，并用CA私钥加密。小明将证书发布到互联网，小红就可以通过CA公钥证明哪个证书是小明的，从而确定公钥。
 如何保证数字证书不是伪造？数字证书由CA签名，CA有自己的公私钥，每人的电脑里有CA根证书，放在浏览器或操作系统里，记录了可信赖的CA机构信息及公钥。
 
-https：tcp连接创立后进入https的加密流程。流程：1.TLS通过4次握手获取会话秘钥 2.基于秘钥进行对称加密通信。
+https
+tcp连接创立后进入https的加密流程。流程：1.TLS通过4次握手获取会话秘钥 2.基于秘钥进行对称加密通信。
 四次握手：
 1.客户端发送给服务端，包括支持什么加密协议版本、 算法及一个随机数A
 2.服务端发给服务端，具体的加密方式、服务器证书、随机数B
@@ -340,5 +599,6 @@ https：tcp连接创立后进入https的加密流程。流程：1.TLS通过4次�
 https不是绝对安全的，https只能解决端到端的传输安全问题，如果客户端本身已经被入侵，即端已经被入侵，并被安装了伪造的根证书，那https也是不安全的
 
 
-
-
+========================非技术面========================
+为何离职
+低代码没技术含量，古老闭源框架无前途，erp前景不看好，草台班子不重视技术和质量，出差
