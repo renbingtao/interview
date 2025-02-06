@@ -1,0 +1,213 @@
+
+========================spring========================
+
+Autowired和Resource注解的区别
+两者都是用来做bean的注入
+Autowired默认按类型注入，若有多个类型则根据名称查找（也可以手动指定名称@Qualifier）
+Resource不是spring的注解，spring只是支持。默认按照名称（加了注解的变量的名称）注入，名称找不到时按类型注入
+
+依赖注入的几种方式
+比如有一个类A，有属性B，并提供了有参构造器
+1.构造器注入，即在A的有参构造器上添加@Auaowired注解，spring官方推荐的方式。特定是B为final时也可注入；A初始化初始化完成后即可使用；可检测循环依赖
+2.setter注入，即在setB方法上加注解。特定是B为final时无法注入；A初始化完成后B未注入，不能直接使用；可检测循环依赖
+3.属性注入，也是最常用的注入，直接在B上加注解。特点和上面一样
+
+MVC的工作流程
+1.用户发送请求至DispatcherServlet类，调用doService方法，doService又会调用doDispatch方法，下面的流程都在doDispatch内
+2.检查请求是否为文件上传请求，若是则解析为multipartRequest
+3.获得HandlerExecutionChain，即mappedHandler，内部包含handler，多个interceptor。DispatcherServlet内有一个List<HandlerMapping>，HandlerMapping有方法getHandler，遍历集合返回第一个非空的handler。是根据url查找的
+4.获取HandlerAdapter，即ha。DispatcherServlet内有一个List<HandlerAdapter>，遍历集合，检查HandlerAdapter能否支持handler，返回第一个能支持的
+5.HandlerExecutionChain执行applyPreHandle，即调用handle前先执行预方法，主要是调用拦截器
+6.HandlerAdapter执行handle方法（由处理器即controller执行），返回ModelAndView。若加了@ResponseBody注解，则在handle方法中将结果以json格式写入response中，同时返回的mvc为null
+7.HandlerExecutionChain执行applyPostHandle，即调用handle后再执行方法，同样是拦截器
+8.检查上述过程是否有异常，有异常则将异常转换为mvc
+9.若ModelAndView不为null，则解析为view。DispatcherServlet内有一个List<ViewResolver>，实现了resolveViewName方法（返回view），遍历并解析，返回第一个能解析成功的view
+10.对view渲染（render），将model转换为response
+11.返回response
+总结：DispatcherServlet是整个流程的控制中心。HandlerMapping通过拓展实现了不同的映射方式。
+
+MVC常用的注解及作用
+@RestController：Controller和ResponseBody的组合，默认返回json而不是视图
+@ResponseBody：将方法的返回值作为http的body返回，而不是解析为视图名称
+
+aop的核心概念
+连接点：可以理解为现有的业务代码。比如我想在A接口的doService前打log，则AImpl的doService方法就是连接点
+切面：和aop相关的方法、定义都放在一个类里，在类上加@Aspect注解，这个类就叫切面，如果某天不需要aop了，直接删除这个类就好了
+切点：在切面中定义一个方法，加上@Pointcut注解，表达式为execution(* com.example.service.A.doService(..))，即筛选连接点
+通知：切面在特定连接点上执行的方法，包括前置通知，后置通知等
+核心关注点：与业务逻辑直接相关的主要功能，比如登录、下单
+横切关注点：与业务逻辑没有直接关联，但在整个系统中广泛存在，且需要统一处理，比如日志打印。aop的目的就是把横切关注点从核心关注点中分离出来
+
+对AOP的理解
+spring aop是基于动态代理的，若被代理对象实现了接口，则使用jdk动态代理；否则使用cglib。若没有配置aop，则普通的bean（比如常见的Controller）为非代理对象
+
+jdk代理
+要求被代理对象实现了接口，基于反射实现，采用组合的方式，无法代理静态方法，运行时动态创建代理对象，性能低
+需要实现InvocationHandler类并重写invoke方法，增强的逻辑都在invoke中实现。创建代理类时的参数：被代理类的classloader，接口，InvocationHandler对象。在调用代理类时，实际会调用InvocationHandler的invoke方法
+若被代理类A方法内部调用B方法，则通过invoke调用A时，实际是被代理类执行A方法，不是代理类执行B方法，因此B的增强方法不会执行。总结：jdk代理类自调用时不会走增强方法
+
+cglib代理
+修改被代理类的字节码生成子类，性能高，无法对final、private方法代理。子类对象有一个MethodInterceptor对象，增强的逻辑都在这里实现，为空时执行父类方法；不为空时执行MethodInterceptor的方法
+
+spring aop和aspectj aop的区别
+spring是运行时增强，基于代理；aspectj是编译时增强，基于字节码操作
+
+spring aop失效的场景
+1.对private、protected方法增强
+2.自调用
+
+spring bean的生命周期
+定义：读取配置文件（xml，注解等）解析bean definition并注册到BeanDefinitionRegistry
+实例化：根据bean definition通过反射创建bean对象。单例bean在spring启动时就实例化，原型在请求获取bean时才实例化
+设置对象属性：根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean。即populateBean方法
+初始化：即initializeBean方法
+    检测bean是否实现了XXXAware接口
+        BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
+        BeanFactoryAware同理，调用setBeanFactory
+        ApplicationContextAware同理，调用setApplicationContext
+    执行BeanPostProcessor的前置方法。BeanPostProcessor是spring提供的一个拓展接口
+    若bean实现了InitializingBean接口，调用afterPropertiesSet，用于属性设置完成后做一些操作
+    执行自定义的初始化方法：比如@PostConstruct（这不是spring的注解，spring只是支持）或@Bean中指定了init-method方法
+    BeanPostProcessor的后置方法，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
+销毁：
+    若实现了DisposableBean，则调用destroy方法
+    执行自定义的销毁方法：@PreDestroy或@Bean指定了destroy-method
+
+spring bean的作用域
+单例，默认；原型，为每个请求创建一个实例；request，为每个网路请求创建一个实例；session，保证每个session中有一个实例；global-session
+
+ApplicationContext和BeanFactory的区别
+两者都是用于管理bean，BeanFactory是最基础的bean接口，定义了管理bean的方法，比如getBean。ApplicationContext继承了BeanFactory，实现了更多接口以提供更多功能，如MessageSource（国际化），ResourceLoader（资源加载），ApplicationEventPublisher（事件发布）
+
+单例bean是线程安全的吗
+spring本身没有对单例bean做任何多线程的封装处理，线程安全问题是开发人员要考虑的，spring不关心
+
+spring三级缓存
+一级：private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+缓存已经初始化好的单例bean。当获取bean时，从该缓存中查找，存在则返回。key是bean的名称
+
+二级：private final Map<String, Object> earlySingletonObjects = new HashMap<>(16);
+存储早期暴露的单例bean。当bean实例化完成但未属性填充及初始化时，spring将单例bean放入该缓存中，主要是为了解决循环依赖
+
+三级：private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+存储单例bean的工厂对象。通过ObjectFactory可以获取早期单例bean对象，主要是为了解决AOP代理创建等问题，提供了延迟生成bean的机制
+
+spring如何解决循环依赖
+假设AB存在循环依赖。
+spring实例化A，并把A的工厂对象放入三级缓存中
+填充A的属性，发现A依赖B，于是创建B
+实例化B，同样把B的工厂对象加入三级缓存
+填充B属性，发现B依赖A，从一级缓存找A，不存在；从二级缓存中查找A，不存在；则在三级缓存中查找，能找到，将A从三级缓存中移除，放到二级缓存
+将早期的A注入到B的属性中，完成B的属性填充及初始化，放入一级缓存
+将B注入A的属性中，完成A的属性填充及初始化，放入一级缓存（初始化完成后才放入一级缓存）
+
+第三级缓存的作用
+如果只是为了解决循环依赖，二级缓存就够了，第三级缓存是为了考虑到AOP
+正常没有循环依赖时，bean初始化完成后创建代理对象，然后把一级缓存中的被代理对象替换成代理对象
+有循环依赖时，代理对象的创建会提前放到早期暴漏阶段（即第二级缓存）
+仍然以上面为例，A的工厂对象放入三级缓存中，创建B时，需要注入A
+1.若不提前放到早期暴漏阶段，从三级缓存获取A的工厂对象，工厂返回的是A的原始对象，即B.A为原始对象。后续A完成初始化被替换为代理对象，导致和B.A不一致
+2.若提前放到早期暴漏阶段，从工厂对象中获取A，即调用ObjectFactory.getObject()时，会检查是否需要创建代理对象，若需要则在此阶段创建代理对象，并将代理对象放入二级缓存，即B.A为代理对象。A的后续创建都使用代理对象，A和B.A一致
+
+理论上，在实例化阶段检查是否需要代理，也可以只需要二级缓存，但会违反单一职责的思想 --> 实例化应只做实例化应做的事，不应考虑代理的事
+
+spring事务传播机制
+required：默认，若当前存在事务则加入，不存在则新建
+requireNew：无论当前事务是否存在，都新建事务，新老隔离
+nested：若存在当前事务，则嵌套，否则新建
+数据库一般都支持保存点（savePoint），允许在事务中设置一个标志点，回滚时只回滚到这个标志点而不是整个事务
+spring的嵌套就是基于此实现的，开启嵌套事务时，在父事务中创建保存点，回滚时只回滚到这个保存点，不影响父事务之前的操作，但若父事务回滚，则子事务也会回滚
+其他的不列出来了，一般都使用默认的级别
+
+spring事务的实现方式
+声明式事务：传统的事务实现中，需要手动地开启、提交、回滚。而spring声明式事务允许开发者通过声明的方式来定义事务，不需要手动编写代码来管理事务。具体实现是基于AOP，使用方式是XML或注解@Transactional
+编程式事务：开发在业务代码中手动调用提交、回滚等操作。相比于声明式事务，更加灵活，但也更加难以维护
+
+spring启动流程
+创建SpringApplication实例
+    检查是否为web应用
+    查找并加载初始化器（ApplicationContextInitializer）
+    查找并加载应用监听器（ApplicationListener）
+调用SpringApplication的run方法
+    准备环境（Environment）
+        加载各种配置源，比如application.properties
+        根据配置信息创建Environment对象
+    创建ApplicationContext实例（根据之前判断的应用类型创建不同实例）
+    准备ApplicationContext
+        绑定环境
+        初始化器（ApplicationContextInitializer）对ApplicationContext进行初始化
+    刷新ApplicationContext
+        obtainFreshBeanFactory：创建或获取一个新的 BeanFactory 实例，如果是xml配置文件，还会解析bean definition
+        prepareBeanFactory：配置 BeanFactory，比如添加BeanPostProcessor
+        postProcessBeanFactory：后置处理 BeanFactory，允许子类对BeanFactory做一些额外处理，比如基于注解的ApplicationContext会解析bean definition
+        invokeBeanFactoryPostProcessors：调用 BeanFactoryPostProcessor 对 BeanFactory 进行后置处理，允许在 Bean 实例化之前修改 Bean 定义
+        registerBeanPostProcessors：注册 BeanPostProcessor，其可用于在 Bean 实例化、属性注入前后进行额外的处理
+        initMessageSource：初始化 MessageSource，可用于国际化
+        initApplicationEventMulticaster：初始化事件广播器，用于发布和处理应用程序事件
+        onRefresh：允许子类做一些刷新操作
+        registerListeners：注册事件监听器，查找并注册所有实现了 ApplicationListener 接口的 Bean，将它们注册到事件广播器中，以便监听和处理应用程序事件
+        finishBeanFactoryInitialization：实例化所有剩余的单例 Bean。如果是 Web 应用，会初始化 EmbeddedWebServer
+    调用CommandLineRunner或ApplicationRunner接口
+
+此外整个过程中会发布各种事件
+
+
+spring使用了哪些设计模式
+简单工厂模式：BeanFactory
+工厂方法模式：FactoryBean
+代理模式：AOP
+观察者模式：各种Event和Listener
+责任链模式：spring拦截器
+
+========================mybatis========================
+
+#{}和${}的区别
+#{}是预编译处理，可以防止sql注入，${}是字符串替换
+
+缓存机制
+一级缓存（也叫localCache、本地缓存）
+一级缓存的生命周期和sqlsession一致，在同一个sqlsession中，执行相同的查询，先查缓存，查不到则查db并缓存。不同的sqlsession不共享
+sqlsession内包含一个executor，executor内有一个LocalCache
+
+二级缓存
+如果多个sqlsession之间需要共享缓存，则使用二级缓存。开启二级缓存后，在查询一级缓存前先查询二级缓存
+
+mapper是接口没有实现类，为何还可以调用
+mybatis使用jdk动态代理生成代理对象（根据xml），调用时实际是调用的代理对象的方法
+
+========================spring boot========================
+
+springboot不需要独立的容器也能运行，因为内嵌了各种servlet容器如tomcat，不再需要打成war包，只需要打成jar包就能独立运行
+
+springboot的核心注解是哪个
+启动类上面的注解是@SpringBootApplication，它也是 Spring Boot的核心注解，它包含下列注解
+@SpringBootConfiguration：继承自 @Configuration 注解，用于标记当前类是一个配置类
+@EnableAutoConfiguration：自动配置的核心注解
+@ComponentScan
+
+@Configuration是配置类的注解，作用类似于传统xml文件，可以在其中定义bean及其他配置。加了这个注解的类会生成cglib代理对象，这个类中加了@Bean的方法返回的是单例bean
+示例：
+@Configuration
+public class AppConfig {
+    @Bean
+    public MyService myService() {return new MyService(myRepository());}
+    @Bean
+    public MyRepository myRepository() {return new MyRepository();}
+}
+调用myService()方法时，myRepository()返回的是单例bean，而不会新建一个bean。
+如果把@Configuration换成@Component，则不会生成cglib代理对象而是原始对象，调用myService()方法时会创建新的MyRepository对象
+
+如何理解starter
+启动器，一站式解决依赖集合。传统的spring开发中，引入某个功能时，需要手动添加依赖并手动解决版本兼容问题，而使用starter只用添加一个starter依赖即可解决依赖及版本的问题
+springboot的官方启动器都是以spring-boot-starter-命名的。要构建一个简单的 Web 应用，添加spring-boot-starter-web依赖即可
+
+springboot配置加载顺序
+1.yaml先加载。properties后加载，覆盖yaml，因此properties的优先级比yaml高
+2.命令行参数
+3.操作系统环境变量
+例：命令行和yaml配置冲突，命令行的优先级更高
+
+为何springboot的jar可以直接运行
+springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
+打出来的是Fat jar，包含各种jar包
+java -jar会读取manifest文件中的main class（这是jvm的规范）JarLauncher，读取jar包并启动manifest中的start-class类
