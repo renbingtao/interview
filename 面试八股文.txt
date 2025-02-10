@@ -29,8 +29,23 @@ fail-fast
 java集合的一种错误机制，多个线程同时操作同一个集合对象时，可能产生fail-fast事件，抛出异常。遍历前记录modCount（记录集合修改的次数），遍历时比较该值是否有改变，有则说明被修改，抛异常。
 
 concurrentHashMap原理
-java8之前，分段锁
-8及之后采用cas+synchronized关键字。读时无锁，通过volatile保证可见性。写时，使用sync关键字对头节点加锁，头节点为空时，通过cas写入；不为空时死循环写入。
+java8之前，分段锁，分成16个段，每个段内部是一个小的hashmap，对段操作时需要先获取锁，因此并发最多为16
+8及之后采用cas+synchronized关键字
+get方法：
+调用spread方法重新计算hash值，原hash异或（00/11=1，01/10=0）原hash右移16位，再与0x7fffffff（二进制为01111111等）与运算来保证hash值为正数，因为hash为负数有特殊的作用（表示这个node为红黑树）
+计算下标，但不是通过table[i]获取，而是通过Unsafe类的方法getObjectVolatile来获取最新的值（数组为volatile Node<K,V> table，volatile并不能保证数据内的元素的修改可见性。此外一个不加volatile关键字的数据，也可以通过Unsafe的这个方法获取最新值）
+比较头结点的key及hash，即数据元素的第一个值，相同则返回
+若头结点的hash<0，则代表node为红黑树（TreeBin为Node的子类，重写了find方法及其他对红黑树的操作方法，红黑树的节点为TreeNode类），调用find方法获取值
+按照链表的方式遍历（node为单向）
+put方法：
+内部是一个死循环，方法内大量if elseif elseif else
+if：数组为空，则初始化
+elseif：头节点为空，新建node并通过cas替换，替换成功则退出循环
+elseif:头节点的hash=-1，则说明正在扩容中，将旧的头节点替换为新的头结点
+else:获取sync锁（锁为头节点），头节点hash>=0时，进入子循环：比较hash及key，相等则替换val，不等则继续比较下一个，为空则新建node，直到退出子循环。每循环一次，binCount（默认0的int）都会++
+                            头节点为红黑树时，调用红黑树的方法插入
+                            释放sync锁，检查若binCount>=8，则转为TreeBin。若有旧值，则返回旧值
+ifelse已结束，且没有旧值，更新map的总数，检查是否需要扩容，最后返回null
 
 cas锁
 比较并交换值，这是一个系统底层的原子方法，不可分割的
