@@ -83,8 +83,12 @@ LinkedBlockingQueue，基于链表的有界或可选无界的阻塞队列，FIFO
 SynchronousQueue，特殊的队列，容量为0，元素直接从生产者给消费者，无缓冲。Executors.newCachedThreadPool()内部就使用了该队列，适合大量短期异步任务，潜在问题是允许创建的线程无上线，可能耗尽系统资源。应用场景：线程之间直接传递数据，没有延迟
 
 threadLocal
-使用弱引用的原因：若使用强引用，threadlocal对象的引用设置为null时，threadlocalmap仍指向了threadlocal对象，导致不会回收，使用弱引用则会正常回收
-内存泄露的原因：threadlocal对象被回收后，map的key为null，但值仍存在，生命周期和线程一致。所以使用完threadlocal后，要调用remove清除键值对。另外线程可能复用，若不清除，线程下次复用时，threadlocal仍保存之前的值，导致混乱
+threadLocalMap包含多个entry，key为threadLocal，value为保存的对象，继承WeakReference<ThreadLocal>，即key为弱引用，value为强引用。注意，当key=null时，WeakReference对象不会被回收，即WeakReference本身也是强引用，不会因为key被回收而被回收，则value始终有该强引用
+使用弱引用的原因：若使用强引用，threadLocal对象的引用设置为null时，threadLocalMap仍指向了threadLocal对象，导致不会回收，使用弱引用则会正常回收
+内存泄露的原因：threadlocal对象被回收后，map的key为null，但WeakReference仍存在，则value也存在，生命周期和线程一致。所以使用完threadLocal后，要调用remove清除键值对。另外线程可能复用，若不清除，线程下次复用时，threadLocal仍保存之前的值，导致混乱
+
+线程池
+线程池的核心机制是对线程的复用，即一个线程执行完任务后，线程本身不会被销毁，则其内部的成员变量的值（比如ThreadLocalMap，子类的私有变量）会被保留，线程id也会保留，再次执行任务时，这些成员变量仍会保持上一次执行的状态
 
 AQS
 一个抽象类，位于guc的Lock包下，为锁和同步器提供了通用的框架。提供了排他锁和共享锁、公平锁和非公平锁等制。使用了int类型的state变量记录锁竞争的状态，不同子类实现中有不同的含义
