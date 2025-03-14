@@ -48,6 +48,7 @@ jdk代理
 
 cglib代理
 修改被代理类的字节码生成子类，性能高，无法对final、private方法代理。子类对象有一个MethodInterceptor对象，增强的逻辑都在这里实现，为空时执行父类方法；不为空时执行MethodInterceptor的方法
+cglib继承了父类，但只是为了增强public方法，内部持有被代理对象的引用，调用proxy的方法时，最后还是由target执行，因此表面是继承，本质是组合。由于final方法无法被继承，因此调用proxy的final方法时，会调用父类方法而非由target执行，因此会出现各种异常
 
 spring aop和aspectj aop的区别
 spring是运行时增强，基于代理；aspectj是编译时增强，基于字节码操作
@@ -93,7 +94,7 @@ spring三级缓存
 存储单例bean的工厂对象。通过ObjectFactory可以获取早期单例bean对象，主要是为了解决AOP代理创建等问题，提供了延迟生成bean的机制
 
 spring如何解决循环依赖
-假设AB存在循环依赖。
+假设AB存在循环依赖
 spring实例化A，并把A的工厂对象放入三级缓存中
 填充A的属性，发现A依赖B，于是创建B
 实例化B，同样把B的工厂对象加入三级缓存
@@ -112,6 +113,10 @@ spring实例化A，并把A的工厂对象放入三级缓存中
 理论上，在实例化阶段检查是否需要代理，也可以只需要二级缓存，但会违反单一职责的思想 --> 实例化应只做实例化应做的事，不应考虑代理的事
 
 spring事务传播机制
+一个spring事务执行中遇到了另一个spring事务，要如何处理事务间的关系。开启spring事务的时机：@Transactional注解被外部调用时，走proxy的增强方法，因此spring可以开启事务
+方法自调用：举例controller->Aservice.a()->Aservice.b()。ab方法都有@Trancational注解，但自始至终都只有一个事物(a方法被调用时开启的)，因此不存在事务传播，b方法加不加注解效果都是一样的。b方法没有开启事务，是因为a调b时，是被代理类调用，因此不会走增强方法
+
+spring事务传播的级别
 required：默认，若当前存在事务则加入，不存在则新建
 requireNew：无论当前事务是否存在，都新建事务，新老隔离
 nested：若存在当前事务，则嵌套，否则新建
@@ -194,7 +199,7 @@ public class AppConfig {
     @Bean
     public MyRepository myRepository() {return new MyRepository();}
 }
-调用myService()方法时，myRepository()返回的是单例bean，而不会新建一个bean。
+调用myService()方法时，myRepository()返回的是单例bean，而不会新建一个bean
 如果把@Configuration换成@Component，则不会生成cglib代理对象而是原始对象，调用myService()方法时会创建新的MyRepository对象
 
 如何理解starter
@@ -211,3 +216,8 @@ springboot配置加载顺序
 springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
 打出来的是Fat jar，包含各种jar包
 java -jar会读取manifest文件中的main class（这是jvm的规范）JarLauncher，读取jar包并启动manifest中的start-class类
+
+ApplicationRunner
+这是spring提供的一个类，在spring应用启动后执行特定的任务，且只会执行一次，可以做一些初始化操作，比如预热缓存，初始化db连接池
+
+
