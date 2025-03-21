@@ -1,0 +1,174 @@
+
+========================nacos========================
+
+注册中心
+引入依赖：spring-cloud-starter-alibaba-nacos-discovery
+具体配置：spring.application.name为服务名；spring.cloud.nacos.server-addr为nacos的ip端口
+springboot启动后，微服务自动注册到nacos
+
+服务发现的具体实现：启动类添加@EnableDiscoveryClient注解
+在要调用的类中注入DiscoveryClient（spring提供）或NacosServiceDiscovery（nacos提供），调用getInstance方法获取所有实例，手动选择一个，然后使用new RestTemplate().getForObject(xx)进行调用
+或者注入LoadBalancerClient，调用choose负载均衡地获取一个实例
+或者注入RestTemplate（推荐），并加上@LoadBalanced注解，并把ip+端口改成服务名
+但无论哪种，都只能获取ip及端口。路径/请求体需要手动组装
+
+nacos宕机，还能进行远程调用吗
+本地有缓存，因此如果是第一次调用，会失败；不是第一次调用则能调用
+
+配置中心
+引入依赖：spring-cloud-starter-alibaba-nacos-config
+具体配置：在上面的基础上，加入spring.config.import=nacos:xxxx.properties （不需要手动新建该配置文件），多个nacos用逗号分隔
+在nacos的配置中心中，手动创建一个配置（数据集），其DataID为xxxx.properties，kv自己添加
+在使用配置的类上，添加@RefreshScope，才能自动刷新
+在开发中，就像该配置文件存在一样，正常使用@Value注入。相当于原先本地的配置文件现在放在了nacos
+
+上面是基本用法。可以把xxxx.properties映射到一个类，加上@Data,@Component,@ConfigurationProperties注解，无需@RefreshScope即可自动刷新（前提是配置绑定nacos）再在使用的地方注入该类
+@ConfigurationProperties注解的作用是，将properties的key和类的属性一一对应，其中a-bc对应到aBc，即驼峰
+
+监听配置变化
+NacosConfigManager.getConfigService().addListener() 在listener中重写receiveConfigInfo方法，可以获取更新后的配置值
+
+数据隔离
+nacos中有多个概念。namespace（区分不同环境，dev/sit）->group（区分不同服务，order/product）->data id（区分不同数据集，common.properties/db.properties）
+在配置文件中，设置spring.cloud.nacos.config.namespace=dev来指定命名空间；通过xxx.properties?group=order来指定group
+
+nacos数据集和本地的配置文件有相同的配置项，哪个生效
+数据集生效。站在设计的角度，如果本地配置文件生效，则nacos更新配置，应用内也不会更新，则nacos失去了意义。如果有多个nacos，则先声明的（前面的）优先
+
+nacos是强一致性还是最终一致性
+nacos需要存储数据，因此在集群模式下需要保证各节点的数据一致性。强/最终一致性都支持，raft（强一致）和distro（最终一致）
+针对服务发现
+1.非持久化服务：即微服务主动向nacos上报健康状态，微服务框架下，服务间互相感知是依赖于注册中心的，因此对可用性要求高，不适合强一致性算法
+2.持久化服务：所有数据都是直接调用nacos服务端直接创建，因此需要由nocos保证各节点保证一致，因此采用强一致性的共识算法
+针对配置管理
+由于配置信息是直接在nacos服务端创建并管理的，需要大部分节点都保存了配置数据，才能认为保存成功，因此只能采用强一致性共识算法
+
+========================open feign========================
+
+定义
+声明式REST客户端。REST客户端指的是通过http进行远程调用。之前用到的RestTemplate是编程式REST客户端，即需要自己手动拼接ip端口路径等。声明式则只需要简单的注解，告诉open feign远程的地址，请求方式，携带的数据，返回的结果等
+
+具体配置
+启动类添加@EnableFeignClient注解
+新建接口，添加@FeignClient(value = "nacos服务名")注解；定义方法，添加@PostMapping("/路径")注解。如果是第三方api调用，则可以在FeignClient注解中指定url
+
+配置超时
+针对某个feignClient：spring.cloud.openfeign.client.config.nacos服务名.connect-timeout: 3000（连接超时） 类似的还有读超时read-timeout；针对全部 feignClient，把nacos服务名改为default即可
+
+重试
+feign默认不进行重试。可以定义一个Bean Retryer(period,duration,maxAttempt)来进行重试（由spring管理），feign会自动检测（无需配置）。以（100,1000,5）为例，失败后等待100ms重试，再次失败等待150ms后重试，再失败225ms后重试，即每次*1.5，但不超过1000ms
+
+fallback
+当feign调用失败时，返回预先定义好的兜底数据，需要先引入sentinel
+在FeignClient修饰的接口新增一个fallback实现类（由spring管理），实现异常时的返回，在@FeignClient(fallback=xxx.class)中指定实现类
+
+客户端负载均衡和服务端负载均衡
+客户端：A调B，A先去注册中心获取全部地址，自己根据负载均衡算法选择一个地址调用
+服务端：A调B，B提供的是网关地址，网关从注册中心获取全部地址，根据算法选择一个地址进行转发
+
+========================sentinel========================
+
+作用是服务保护，包括限流及熔断降级
+核心概念是资源和规则，按照一定的规则对资源进行保护。访问资源时，sentinel检查对应的规则，没有违反规则就放行；违反规则就抛异常，然后进行兜底处理（比如feign的fallback），若没有兜底处理，则返回默认错误
+何为资源：万物皆可资源，比如web接口，方法等。sentinel与主流框架（servlet、dubbo、spring cloud等）做了自动适配，所有web接口都是资源。也可以通过编程(SphU API)或声明(@SentinelResource)的方式自定义资源
+何为规则：包括流量控制、熔断降级、系统保护（根据cpu、内存使用率限制请求）、来源控制访问（只允许白名单里的上游访问资源）、热点参数
+
+具体配置
+sentinel服务启动（从官网下载jar包，java -jar启动），通过8080端口访问管理台
+配置spring.cloud.sentinel.transport.dashboard: sentinel服务器ip:sentinel服务器port
+
+资源声明
+A->B，A是controller，B是serviceImpl，在B的方法上加上@SentinelResource(value="资源名")，即可把方法声明为资源，在管理台配置规则；此外可以看到调用资源的链路，该链路中包含A和B
+
+========================gateway========================
+
+spring cloud gateway有两种版本：reactive server和server MVC。前者是基于响应式编程的，占用少量资源即可实现高并发；后者是传统网关，使用servlet，性能差。推荐前者
+
+具体配置
+引入spring-cloud-starter-gateway依赖，然后像一个普通springboot应用一样启动。由于底层使用响应式编程，网络框架使用的netty
+yml中进行配置
+spring:
+    cloud:
+        gateway:
+            routes:
+                - id: xxx
+                uri: lb://服务名
+                predicates:
+                    - Path=/api/order/xxx
+                - id: xxx
+则以/api/order开头的请求会负载均衡的转发到【服务名】
+由于使用到了lb和nacos，因此也要引入依赖：spring-cloud-starter-loadbalancer和spring-cloud-starter-alibaba-nacos-discovery
+
+跨域请求
+一个网页的脚本试图从一个源（域名、协议、端口号）向另一个源发起请求。比如某网页的地址是http://www.example.com，通过javascript访问http://api.example.net发起AJAX请求
+这是浏览器的同源策略。常见的解决方案有CORS
+
+springboot中解决跨域，可以在Controller上加@CrossOrigin注解，则该controller下的接口都允许跨域访问
+
+springcloud中解决跨域，可以在gateway工程中，配置yml
+spring:
+    cloud:
+        gateway:
+            globalcors:
+                cors-configurations:
+                    '[/**]':
+                        allowedOrigins: "https://docs.spring.io"
+                        allowedMethods:
+                            - GET
+上面的示例是全局生效的
+
+========================seata========================
+
+分支事务
+各个微服务对自己的数据库执行的事务
+全局事务
+分支事务的汇总
+
+事务协调者TC
+管理全局、分支事务的状态，协调各分支事务的提交或回滚。通常是独立部署的中心化服务
+
+事务管理器TM
+定义全局事务的范围：开始全局事务、提交或回滚全局事务。TM嵌入到业务系统中，是分布式事务的入口
+
+资源管理器RM
+管理分支事务处理的资源，报告给TC分支事务的状态，驱动分支事务提交或回滚
+
+全局事务创建：TM向TC注册全局事务，TC分配一个全局事务ID（XID）
+分支事务注册：每个分支事务通过RM向TC注册
+协调提交/回滚：根据全局事务的状态，通知RM提交或回滚分支事务
+
+举例：A服务通过RPC调用B服务；B会写db然后调用C服务；C服务也会写db；然后A再调D服务。则A是TM，BCD是RM，seata服务器是TC
+
+具体配置
+引入依赖spring-cloud-starter-alibaba-seata
+添加seata的配置文件file.conf，主要内容如下
+service {
+    vgroupMapping.default_tx_group = "default" //seata服务器的分组名
+    default.grouplist = "127.0.0.1:8091" //TC的端口
+}
+在全局事务的方法上加@GlobalTransactional注解
+
+seata的二阶段提交
+注解注册全局事务，TM调用TC，生成XID，全局事务开始
+第一阶段：执行分支事务
+    先查询前镜像（通过where查询修改前的数据）
+    执行sql
+    查询后镜像（根据id查询修改后的数据）
+    将前后镜像写入undo_log表中
+    注册分支事务，申请记录的全局锁
+    本地事务提交：业务数据及undo_log一起保存
+    向TC汇报结果
+第二阶段：分支提交/回滚
+    所有分支成功：TC通知所有分支提交，由于各分支本地事务已提交，因此直接返回ok
+    TC创建一个异步任务，任务会批量删除undo_log记录
+    任一分支失败：TC通知所有分支回滚，分支开启本地事务：
+        根据XID，branchId在undo_log表中查询数据
+        数据校验：后镜像和当前数据比较，正常情况是一致的；如果不一致，执行配置的策略
+        数据一致时，回滚数据：把数据更新为前镜像，删除undo_log
+    无论成功还是失败，最后都要释放全局锁
+
+四种事物模式（分支的事务模式）
+AT：即auto，由seata自动控制，默认
+XA：遵循XA协议，以XA协议的机制来管理分支事务。XA在第一阶段不会提交，而是阻塞，在第二阶段才是真正提交
+TCC：即try confirm cancel三个方法，由程序员手动实现逻辑
+Saga：长事务解决方案，整合消息队列，实现最终一致性，适用于短时间无法完成的事务，比如单据审批

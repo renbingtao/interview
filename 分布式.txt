@@ -32,6 +32,15 @@ ALL IN ONE，所有功能模块都在一个应用里，只有一个节点，申�
 漏桶：一个底部有洞的桶，请求像水一样注入到桶中，以恒定的速率流出桶，桶满时丢弃，一般用队列实现
 令牌桶：以固定的速度向令牌桶中扔令牌，直到桶满；请求需要先获取令牌才能继续，否则被丢弃
 
+========================对BASE的理解========================
+
+对CAP理论的一致性和可用性权衡的结果，系统无法做到强一致性，允许暂时不一致，但可以达到最终一致性
+
+基本原则
+基本可用（Basically Available）:系统在大部分时间内是可用
+软状态（Soft state）：节点的数据可以处于不一致的状态，但不会影响系统的整体可用性
+最终一致性（Eventual consistency）：保证所有节点的数据最终会达到一致状态
+
 ========================共识算法及Raft协议========================
 
 定义
@@ -69,80 +78,6 @@ Raft是强领导者模型，即只有领导可以接受客户端的写请求。l
 脑裂
 节点间网络不通（分区故障）时，集群会分裂成两个小集群，有两个领导。当分区恢复时，任期低的leader会成为任期高leader的follower，保证只有一个leader。由于超过半数的节点执行成功时leader才能返回成功，因此只有一个leader能够继续对外提供服务，其他leader只能回复失败
 
-========================nacos========================
+========================本地消息表========================
 
-注册中心
-引入依赖：spring-cloud-starter-alibaba-nacos-discovery
-具体配置：spring.application.name为服务名；spring.cloud.nacos.server-addr为nacos的ip端口
-springboot启动后，微服务自动注册到nacos
-
-服务发现的具体实现：启动类添加@EnableDiscoveryClient注解
-在要调用的类中注入DiscoveryClient（spring提供）或NacosServiceDiscovery（nacos提供），调用getInstance方法获取所有实例，手动选择一个，然后使用new RestTemplate().getForObject(xx)进行调用
-或者注入LoadBalancerClient，调用choose负载均衡地获取一个实例
-或者注入RestTemplate（推荐），并加上@LoadBalanced注解，并把ip+端口改成服务名
-但无论哪种，都只能获取ip及端口。路径/请求体需要手动组装
-
-nacos宕机，还能进行远程调用吗
-本地有缓存，因此如果是第一次调用，会失败；不是第一次调用则能调用
-
-配置中心
-引入依赖：spring-cloud-starter-alibaba-nacos-config
-具体配置：在上面的基础上，加入spring.config.import=nacos:xxxx.properties （不需要手动新建该配置文件），多个nacos用逗号分隔
-在nacos的配置中心中，手动创建一个配置（数据集），其DataID为xxxx.properties，kv自己添加
-在使用配置的类上，添加@RefreshScope，才能自动刷新
-在开发中，就像该配置文件存在一样，正常使用@Value注入。相当于原先本地的配置文件现在放在了nacos
-
-上面是基本用法。可以把xxxx.properties映射到一个类，加上@Data,@Component,@ConfigurationProperties注解，无需@RefreshScope即可自动刷新（前提是配置绑定nacos）再在使用的地方注入该类
-@ConfigurationProperties注解的作用是，将properties的key和类的属性一一对应，其中a-bc对应到aBc，即驼峰
-
-监听配置变化
-NacosConfigManager.getConfigService().addListener() 在listener中重写receiveConfigInfo方法，可以获取更新后的配置值
-
-数据隔离
-nacos中有多个概念。namespace（区分不同环境，dev/sit）->group（区分不同服务，order/product）->data id（区分不同数据集，common.properties/db.properties）
-在配置文件中，设置spring.cloud.nacos.config.namespace=dev来指定命名空间；通过xxx.properties?group=order来指定group
-
-nacos数据集和本地的配置文件有相同的配置项，哪个生效
-数据集生效。站在设计的角度，如果本地配置文件生效，则nacos更新配置，应用内也不会更新，则nacos失去了意义。如果有多个nacos，则先声明的（前面的）优先
-
-nacos是强一致性还是最终一致性
-nacos需要存储数据，因此在集群模式下需要保证各节点的数据一致性。强/最终一致性都支持，raft（强一致）和distro（最终一致）
-针对服务发现，如果服务主动向nacos上报健康状态，则是最终一致性，同时要求nacos高可用；如果nacos主动探测服务状态，则需要nacos本身保证节点的数据一致性，采用强一致性的共识算法保证
-针对配置管理，由于配置信息是在nacos服务端创建并管理的，需要大部分节点都保存了配置数据，才能认为保存成功，因此只能采用强一致性共识算法
-
-========================open feign========================
-
-定义
-声明式REST客户端。REST客户端指的是通过http进行远程调用。之前用到的RestTemplate是编程式REST客户端，即需要自己手动拼接ip端口路径等。声明式则只需要简单的注解，告诉open feign远程的地址，请求方式，携带的数据，返回的结果等
-
-具体配置
-启动类添加@EnableFeignClient注解
-新建接口，添加@FeignClient(value = "nacos服务名")注解；定义方法，添加@PostMapping("/路径")注解。如果是第三方api调用，则可以在FeignClient注解中指定url
-
-配置超时
-针对某个feignClient：spring.cloud.openfeign.client.config.nacos服务名.connect-timeout: 3000（连接超时） 类似的还有读超时read-timeout；针对全部 feignClient，把nacos服务名改为default即可
-
-重试
-feign默认不进行重试。可以定义一个Bean Retryer(period,duration,maxAttempt)来进行重试（由spring管理），feign会自动检测（无需配置）。以（100,1000,5）为例，失败后等待100ms重试，再次失败等待150ms后重试，再失败225ms后重试，即每次*1.5，但不超过1000ms
-
-fallback
-当feign调用失败时，返回预先定义好的兜底数据，需要先引入sentinel
-在FeignClient修饰的接口新增一个fallback实现类（由spring管理），实现异常时的返回，在@FeignClient(fallback=xxx.class)中指定实现类
-
-客户端负载均衡和服务端负载均衡
-客户端：A调B，A先去注册中心获取全部地址，自己根据负载均衡算法选择一个地址调用
-服务端：A调B，B提供的是网关地址，网关从注册中心获取全部地址，根据算法选择一个地址进行转发
-
-========================sentinel========================
-
-作用是服务保护，包括限流及熔断降级
-核心概念是资源和规则，按照一定的规则对资源进行保护。访问资源时，sentinel检查对应的规则，没有违反规则就放行；违反规则就抛异常，然后进行兜底处理（比如feign的fallback），若没有兜底处理，则返回默认错误
-何为资源：万物皆可资源，比如web接口，方法等。sentinel与主流框架（servlet、dubbo、spring cloud等）做了自动适配，所有web接口都是资源。也可以通过编程(SphU API)或声明(@SentinelResource)的方式自定义资源
-何为规则：包括流量控制、熔断降级、系统保护（根据cpu、内存使用率限制请求）、来源控制访问（只允许白名单里的上游访问资源）、热点参数
-
-具体配置
-sentinel服务启动（从官网下载jar包，java -jar启动），通过8080端口访问管理台
-配置spring.cloud.sentinel.transport.dashboard: sentinel服务器ip:sentinel服务器port
-
-资源声明
-A->B，A是controller，B是serviceImpl，在B的方法上加上@SentinelResource(value="资源名")，即可把方法声明为资源，在管理台配置规则；此外可以看到调用资源的链路，该链路中包含A和B
+将分布式事务拆分成本地事务进行处理，在业务数据库中创建本地消息表，利用本地事务的原子性保证业务表和消息表的一致性，再通过mq异步处理这些消息，实现最终一致性
