@@ -150,3 +150,6 @@ Shared ClassLoader：加载所有Web应用共享的类和资源，父类加载�
 WebApp ClassLoader：每个应用有自己独立的WebApp ClassLoader，加载该应用自身的类，父类加载器是Shared ClassLoader
 Jsp ClassLoader：每个JSP文件都有一个对应的ClassLoader，父类加载器是WebApp ClassLoader
 WebApp ClassLoader打破了传统的双亲委派机制，会先自己加载，找不到时才让父类加载
+
+类文件结构
+class文件是一组以8字节为基础单位的二进制流，中间没有任何分隔符。当某数据项需要8字节以上的空间时，按照高位在前（大端对齐，比如要保存0x1234，高地址为0x12，低地址为0x34，即1234；小端对齐则高地址为0x34，低地址为0x12，即3412）的方式分割为若干个8字节进行存储
