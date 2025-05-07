@@ -136,6 +136,24 @@ raft比较简单，多个产品都实现，如nacos，etcd
 
 raft通过选举出一个leader，让他全权负责管理日志复制来实现一致性。leader从客户端接收日志条目，把日志条目复制到其他follower上，并在安全的时候通知他们应用到状态机中
 raft将一致性问题分解为三个子问题：leader选举，日志复制，安全性
+服务器之间的通信主要通过两个RCP实现：RequestVote RPC和AppendEntries RPC
+
+raft数据结构
+所有服务器上持久化的状态（RPC响应前需要持久化）:currentTerm、voteFor、log[]（每个log包含指令及leader任期）
+所有服务器上不稳定的状态：commitIndex（已提交的最大日志索引）、lastApplied（已应用的最大日志索引）
+leader服务器上不稳定的状态（选举后重新初始化）：nextIndex[]（要发送给每个follower的下一个日志索引）、matchIndex[]（每个follower已复制的最大日志索引）
+
+AppendEntries RPC（leader用来复制日志及心跳检测）
+参数：term、leaderId、prevLogIndex、prevLogTerm、entries[]、leaderCommit
+响应：term、success
+follower逻辑：
+1.follower term>leader term时返回false
+2.follower的最后一个日志的term及index和prevLogTerm及prevLogIndex不匹配时，返回false
+3.follower现有的日志和leader的日志冲突时（比如index相同但term不同），删除冲突的日志及之后的日志
+4.follower将缺失的日志追加到log
+5.if(leaderCommit>commitIndex) then {set commitIndex=min(leaderCommit,index of last new entry)}
+
+
 
 raft基础
 一个Raft集群包含若干个服务器节点；通常是5个，这样的系统可以容忍2个节点的失效
@@ -149,7 +167,7 @@ raft选出领导者意味着进入一个新的任期，即逻辑时间，用数�
 每台服务器需要维护一个currentTerm变量，表示服务器当前已知的最新任期号，该变量需持久化，以便重启时能够知道最新任期
 服务器之间通信时会交换任期，若某个服务器的任期小于其他服务器，则会更新为较大的值；如果leader或candidate发现有其他任期更大的服务器，会退回到follower。若服务器收到的请求的任期小于当前服务器，则会拒绝该请求
 
-服务器之间的通信主要通过两个RCP实现：RequestVote RPC（用于领导者选举）和AppendEntries RPC（领导者用来复制日志和发送心跳）
+
 
 leader选举
 每个节点刚启动时都是follower，follower需要在选举超时时间（electionTimeout，100-500ms）接收leader心跳信息（空的AppendEntries消息）或者候选人投票请求，若能收到，则继续当follower；若收不到，则认为当前集群里没有leader，发起选举
