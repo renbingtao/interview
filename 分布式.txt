@@ -143,17 +143,22 @@ raft数据结构
 所有服务器上不稳定的状态：commitIndex（已提交的最大日志索引）、lastApplied（已应用的最大日志索引）
 leader服务器上不稳定的状态（选举后重新初始化）：nextIndex[]（要发送给每个follower的下一个日志索引）、matchIndex[]（每个follower已复制的最大日志索引）
 
-AppendEntries RPC（leader用来复制日志及心跳检测）
+AppendEntries RPC（leader发送follower给用来复制日志及心跳检测）
 参数：term、leaderId、prevLogIndex、prevLogTerm、entries[]、leaderCommit
 响应：term、success
-follower逻辑：
+方法逻辑：
 1.follower term>leader term时返回false
 2.follower的最后一个日志的term及index和prevLogTerm及prevLogIndex不匹配时，返回false
 3.follower现有的日志和leader的日志冲突时（比如index相同但term不同），删除冲突的日志及之后的日志
 4.follower将缺失的日志追加到log
-5.if(leaderCommit>commitIndex) then {set commitIndex=min(leaderCommit,index of last new entry)}
+5.if(leaderCommit>commitIndex) then {set commitIndex=min(leaderCommit,index of last new entry);apply()}
 
-
+RequestVote RPC（candidate用来获取选票）
+参数：term（candidate的任期）、candidateId、lastLogIndex、lastLogTerm
+响应：term、voteGranted(true/false)
+方法逻辑：
+1.if(currentTerm>term){return false}
+2.voteFor==null||voteFor==candidateId（即重复投票），且candidate的log不比当前节点的log落后（通过lastLogTerm+lastLogIndex来比较），则return true
 
 raft基础
 一个Raft集群包含若干个服务器节点；通常是5个，这样的系统可以容忍2个节点的失效
