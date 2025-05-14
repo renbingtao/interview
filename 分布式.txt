@@ -138,6 +138,8 @@ raft通过选举出一个leader，让他全权负责管理日志复制来实现�
 raft将一致性问题分解为三个子问题：leader选举，日志复制，安全性
 服务器之间的通信主要通过两个RCP实现：RequestVote RPC和AppendEntries RPC
 
+============raft算法浓缩============
+
 raft数据结构
 所有服务器上持久化的状态（RPC响应前需要持久化）:currentTerm、voteFor、log[]（每个log包含指令及leader任期）
 所有服务器上不稳定的状态：commitIndex（已提交的最大日志索引）、lastApplied（已应用的最大日志索引）
@@ -160,6 +162,24 @@ RequestVote RPC（candidate用来获取选票）
 1.if(currentTerm>term){return false}
 2.voteFor==null||voteFor==candidateId（即重复投票），且candidate的log不比当前节点的log落后（通过lastLogTerm+lastLogIndex来比较），则return true
 
+服务器规则
+all servers
+1.if(commitIndex>lastApplied){增加lastApplied,应用log到状态机}
+2.if(request.term>currentTerm || response.term>currentTerm){set currentTerm=xx.term;转为follower}
+follower
+1.对leader及候选人的RPC请求进行响应
+2.选举时间(election timeout)内没有收到AppendEntries RPC或RequestVote RPC,转为candidate
+candidate
+转为候选人后，开始选举：1.当前任期+1 2.给自己投票 3.重置election timer 4.向其他服务器发送Request Vote RPC
+选举结果：1.收到大多数服务器的选票，则成为leader 2.收到新leader的RequestVote RPC，退回follower 3.选举超时，开始新一轮投票
+leader
+选举成功后：发送空的AppendEntries消息给每个服务器，在空闲的周期内重复，防止选举超时
+接收客户端请求：追加到本地日志，在应用到状态机后回复
+对于某个follower，if(last log index>nextIndex){发送AppendEntries RPC，附带从nextIndex开始的log条目；若成功，则更新该follower的nextIndex及matchIndex；若由于一致性检查而失败，则nextIndex-1并重试}
+
+
+============raft算法详解============
+
 raft基础
 一个Raft集群包含若干个服务器节点；通常是5个，这样的系统可以容忍2个节点的失效
 raft算法中的服务器只能处于以下三种状态
@@ -171,7 +191,6 @@ raft选出领导者意味着进入一个新的任期，即逻辑时间，用数�
 一个正常的任期分为两部分：选举过程和正常运行过程。某些任期内没有选举出领导者，则会立即进入下一个任期，尝试选出一个领导者
 每台服务器需要维护一个currentTerm变量，表示服务器当前已知的最新任期号，该变量需持久化，以便重启时能够知道最新任期
 服务器之间通信时会交换任期，若某个服务器的任期小于其他服务器，则会更新为较大的值；如果leader或candidate发现有其他任期更大的服务器，会退回到follower。若服务器收到的请求的任期小于当前服务器，则会拒绝该请求
-
 
 
 leader选举
