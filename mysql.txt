@@ -169,3 +169,20 @@ binlog的三种模式
 statement：老版本默认的行为，记录SQL语句的原文，会导致主从不一致的问题
 row：5.1.5开始支持。日志中会记录每一行数据被修改的情况，然后在slave端对相同的数据进行修改。不会导致主从不一致的问题，但数据量太大
 mixed：5.1.8开始支持。把上面两种格式结合，根据sql，自动选择格式记录
+
+mysql为何默认使用RR隔离级别
+oracle支持的隔离级别：RC，串行化，read-only（类似串行化，但不允许修改数据，除非用户是SYS）
+mysql中，主从同步是通过bin log进行的，早期只支持statement格式，使用RC的话，会有不一致的问题
+T1                              T2
+begin                           begin
+delete where id<100
+                                insert into id=10
+                                commit
+commit
+上述sql执行后，id=10的数据会存在（RC没有间隙锁，不会锁住区间，insert操作不会被阻塞）
+这两个sql同步到从库时，T2在前，T1在后，执行后id=10的数据不存在，导致不一致的问题
+在RR级别下，由于添加了gap锁和临键锁，导致insert被阻塞，只有T1commit后，insert才会生效，不会有不一致的问题
+此外，mysql还禁止bin log=statement时，把隔离级别设置为RC
+
+为何很多公司把隔离级别设置为RC
+先搞清楚RR和RC的区别
