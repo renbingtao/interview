@@ -74,18 +74,18 @@ B+ tree；自适应哈希索引，innodb发现某些索引值被频繁访问时�
 
 主键
 若没有定义主键，innodb会选择非空唯一索引来代替，若没有，会隐式定义一个主键
-何时不适合主键顺序插入：高并发场景，按主键顺序插入可能造成写入竞争，主键的上界成为热点，导致gap lock的竞争。注意这里不是主键自增
+何时不适合主键顺序插入：高并发场景，按主键顺序插入（手动指定主键）可能造成写入竞争，主键的上界成为热点，导致gap lock的竞争。注意这里不是主键自增
 
-主键自增
-mysql主键自增时的加锁机制通过AUTO-INC锁（特殊的表级锁）实现
-可修改innodb_autoinc_lock_mode参数：传统模式，持有特殊的表级锁（自增锁）直到插入完毕，无论单条还是批量；连续模式，对于大多数的新增，使用轻量级的互斥锁而非表级锁生成主键，互斥锁只在生成主键的瞬间持有，但对于特殊的插入，比如insert select，使用表级锁；交错模式，为每个插入线程分配一个自增主键值的范围，然后在这个范围内生成自增主键，范围用完后，向innodb申请新的范围
-
-AUTO_INCREMENT
-mysql自增机制，由innodb_autoinc_lock_mode参数控制
-0，传统模式
-1，连续模式，8.0之前的默认值
-2，交错模式，8.0之后的默认值。8.0修改了默认值，是因为binlog的默认值改为了row，
-
+AUTO_INCREMENT锁模式
+参考mysql官方文档，innodb插入语句涉及到自增列，大概分为以下几种：
+"INSERT-like":包含所有能够插入数据的sql，比如inset,insert ... select,replace,replace ... select,load data。包括"simple-inserts","bulk-inserts","mixed-mode"
+"Simple inserts":能够确定插入条数的sql，比如单行或多行insert/replace，不包含INSERT... ON DUPLICATE KEY UPDATE
+"Bulk inserts":不能够确定插入条数的sql，比如insert ... select,replace ... select,load data，不包含普通的insert。这种情况下，innodb会在处理每一行时分配自增值
+"Mixed-mode inserts":部分数据的条数可以确定，部分不能确定。比如INSERT INTO t1 (id,c2) VALUES (1,'a'), (NULL,'b'), (5,'c'), (NULL,'d');部分id为null，由系统分配，部分是手动分配。再比如INSERT ... ON DUPLICATE KEY UPDATE，最坏情况下，它先执行插入，再执行更新，更新阶段可能使用自增值，也可能不使用
+innodb_autoinc_lock_mode参数有以下几种值
+0，传统模式。在innodb_autoinc_lock_mode参数引入前，采用这种模式。在该模式下，所有"INSERT-like"语句都会获取一个特殊的表级锁（AUTO-INC lock），该锁会保持到语句的结束，而非事务的结束。对于给定的一系列插入sql，产生的自增值是可预测且重复的。在基于statement的复制模式中，副本产生的自增值和源服务器是相同的，多个insert执行的结果是确定的，副本的数据和源服务器保持一致。同时执行多个insert时，只能执行一个insert语句，其他语句都会阻塞，这也会限制并发插入时的性能
+1，连续模式，8.0之前的默认值。在该模式下，Bulk inserts使用AUTO-INC lock，直到sql结束。Simple inserts没有使用AUTO-INC lock，而是使用互斥锁（轻量级锁），互斥锁仅在生成自增值时获取，生成后释放，而非在语句结束时释放，但如果其他事务持有AUTO-INC lock，当前事务也会被阻塞。总的来说，这种模式显著提高了性能，且基于statement的复制仍然安全，但有一个例外，就是Mixed-mode inserts，在该情况下，innodb会分配比需要的行数更多的自增值，由于所有自动分配的值都是连续的，因此多余的值会被丢失
+2，交错模式，8.0之后的默认值。8.0修改了默认值，是因为binlog的默认格式由statement改为了row：statement模式下，需要采用连续的自增锁模式，以保证同样的sql能产生同样的自增值；row模式下则不受sql语句执行顺序的影响。在该模式下，任何INSERT-like都不会使用AUTO-INC lock，多个语句可以并发执行，性能最高，但基于statement的复制不安全。多个语句可以同时生成自增值，即自增值的分配是在多个语句之间可能是交错进行的。同理，Simple inserts生成的自增值是连续的，Bulk inserts生成的自增值可能不连续，innodb会分配一个范围，从这个范围内获取自增值，范围用完后，向innodb申请新的范围
 
 排序
 mysql有两种方式生成有序结果：排序操作，或者按索引顺序扫描。type列为index，则使用了索引扫描，extra列包含Using filesort，则进行了排序，内存够时在内存中排序，内存不足时将数据分为很多小部分，每个部分排序然后保存在磁盘，然后合并。排序时会申请行数据的最大空间，比如varchar按最大长度，utf8mb4按4字节申请。如果索引包含a，b，则order by a desc,b desc的extra包含Backward index scan
@@ -252,13 +252,15 @@ INPLACE算法
 5.创建索引结束
 无论哪种方式，都不允许写操作
 5.6开始，使用了online DDL的技术，它允许在执行表结构变更时不阻塞并发的DML操作
-不是所有的 DDL 操作都能用 INPLACE 的方式执行，具体要查看mysql的官方手册
+不是所有的 DDL 操作都能用 INPLACE 的方式执行，具体要查看mysql的官方手册，比如添加一列
+Operation	        Instant	    InPlace	    RebuildsTable	    PermitsConcurrentDML	OnlyModifiesMetadata
+Adding a column	    Yes*	    Yes	        No*	                Yes*	                Yes
 
 innodb中的索引类型
 B+树和hash索引。B+树又分为聚簇索引和非聚簇索引
 
 唯一索引允许NULL值吗
-允许。NULL表示未知，两个未知的事务不代表它们相等，即每个NULL都被视为互不相同，NULL=NULL返回false，因此唯一所以可以包含多个NULL值。但是主键不能为NULL
+允许。NULL表示未知，两个未知的事务不代表它们相等，即每个NULL都被视为互不相同，NULL=NULL返回false，因此唯一所以索引包含多个NULL值。但是主键不能为NULL
 
 设计索引有哪些原则
 尽量选择区分度高的字段，但也不绝对，也要考虑数据倾斜
@@ -269,3 +271,10 @@ MYSQL一定遵循最左前缀匹配吗
 比如在a，b两个字段上建立索引，select a from table where b=xx;
 当a字段的区分度很低时（比如性别），mysql会走索引的跳跃扫描，explain中extra为Using index for skip scan
 如果查询索引之外的列（比如select c）则会失效；group by，distinct也会失效；join也会失效
+
+mysql隐式转换的危害
+SELECT 21958580 = '21958581';
+return 0
+SELECT 2195858021798688768 = '2195858021798688767';
+return 1
+字符串和数字比较时，有精度丢失的风险。最好使用强制转换
