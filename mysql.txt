@@ -278,3 +278,18 @@ return 0
 SELECT 2195858021798688768 = '2195858021798688767';
 return 1
 字符串和数字比较时，有精度丢失的风险。最好使用强制转换
+
+order by
+在a,b字段建立索引，能使用索引举例:
+select xx order by a/a desc
+select xx order by a,b/a desc,b desc
+select xx where a = yy order by b/b desc
+select xx where a like yy% order by b
+不能使用索引举例：
+select xx order by b
+select xx order by upper(b)
+select xx order by a,c
+select xx order by a,b desc
+select xx where a like yy% order by b desc
+综上，mysql在扫描索引时，只能向一个方向扫描，不能中途向反方向扫描
+
