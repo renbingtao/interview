@@ -137,7 +137,7 @@ mysql有redo log（物理日志，比如操作页）和bin log（逻辑日志，
 1.将redo log buffer中的日志刷新到磁盘（调用 write 和 fsync），处于prepare阶段
 write将数据写入文件的缓冲区，即完成该操作后，不一定立即将数据持久化到磁盘上，仍然在内存中；fsync强制将文件的修改写入磁盘，通常与write配合使用
 2.同理，通过write和fsync将binlog写入磁盘
-3.在存储引擎内部执行事务，更新redo log，处于commit阶段
+3.在存储引擎内部执行事务，更新redo log，处于commit阶段（先把redo log buffer的状态更新为commit，刷到内存缓冲区，再fsync刷盘）
 
 mysql5.7中的组提交
 将多个事务的提交操作合并成一个批处理来减少磁盘IO，将多次fsync合并成一个。有了组提交后，二阶段提交的步骤如下：
@@ -293,3 +293,54 @@ select xx order by a,b desc
 select xx where a like yy% order by b desc
 综上，mysql在扫描索引时，只能向一个方向扫描，不能中途向反方向扫描
 
+深分页如何处理
+1.业务不允许查询偏移量太大的数据
+2.利用上一页的id或排序字段做辅助条件，缺点是不允许跳页，只能下一页。举例：手机端的应用，只允许向下滚动，不能跳到某页。最好在排序字段上建立索引，或者说在建立索引时考虑到排序字段。每次查询select * from xx where order_no > yy 此处排序字段为order_no，yy为上一页的最大order_no
+3.在排序字段上建立覆盖索引，先查询出满足条件的id（这一步不需要回表），然后二次查询（或者通过一个sql通过join搞定）
+总结：深分页没有完美的解决方案，需要对业务或表做些改造，根据实际场景选择
+
+binlog，undolog，redolog的区别
+都是日志类型文件
+binlog：二进制文件，主要用于数据备份，数据复制等。适用于所有存储引擎
+redolog和undolog：主要用于事务管理，崩溃恢复。只适用于innodb
+
+走了索引性能还是很差的原因
+选错索引；数据分布不均匀；sql语句存在问题；
+
+索引失效的场景
+没有正确创建索引，比如不符合最左前缀
+索引区分度不高
+数据量太小，全表扫描更快
+查询sql中，对字段进行了函数操作、计算、隐式类型转换等
+
+索引下推生效的场景
+a,b,c上建立索引
+例子1：where a = xx and b > xx and c = xx
+例子2：where a > xx and b = xx。但mysql无绝对，如果大部分数据都满足a>xx，则可能会走全表扫描
+
+explain要查看哪些信息
+关键的包括：type，possible_keys，key，filtered（越小选择度越高），extra
+type：
+eq_ref，唯一索引或主键等值查询
+ref，非唯一索引等值查询
+range，索引的范围查询
+index，全索引扫描
+all，全表扫描
+extra：
+Using where，例如在没有建索引的字段上查询，说白了就是要回表
+Using index，例如覆盖索引
+Using index condition，例如索引下推
+Using where;Using index，覆盖索引+条件过滤。比如在a,b上建立索引，select a where b = xx （覆盖索引但不符合最左前缀）或者 select b where a > xx（覆盖索引但前导列是范围查询）
+Using filesort，使用文件排序而非索引排序
+
+是否支持emoji表情存储
+utf8mb4编码才支持；mysql的utf8实际为utf8mb3，是不支持的
+
+死锁如何解决
+大多数现代数据库都有死锁检测机制，在发生死锁时自动干预，回滚一个或多个事务
+也可以手动干预，强制回滚事务
+
+避免死锁的方法
+减少锁的数量：将隔离级别从RR设置为RC，避免gap lock和next-key lock
+减少锁的时长：减少操作量
+固定顺序访问数据：事务在访问同一张表时，应该以相同的顺序获取锁
