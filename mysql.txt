@@ -408,3 +408,51 @@ hash join是mysql 8.0推出的一种多表join的算法，针对equal-join场景
 当使用ren，bing，tao进行模糊查询时，就可以对分词加密然后去数据库中匹配
 缺点：冗余字段+数据；不够灵活，比如enbing就无法模糊查询
 
+索引合并
+5.1引入，以下sql就可能使用到索引合并
+例1：select * from xx where key1 = 10 or key2 = 20;
+例2：select * from xx where (key1 = 10 or key2 = 20) and key3 = 30;
+如果使用到了索引合并，explain中的type列会显示为index_merge，且在extra中会显示具体哪种合并策略
+Using union，如例1；Using intersect，当where中使用了and时，系统会使用多个索引，然后找出交集
+
+如何查看一个sql的耗时
+开启特性
+set profiling = 1
+执行sql
+xxx
+查看耗时
+show profiles
+
+数据库扫描表的定时任务如何避免出现死循环
+背景：某个定时任务，会执行select * from xx where state = '1' order by id limit 100;对扫描出来的数据执行一些操作
+有时某些数据的state会一直处于1，导致每次扫描出来的数据都是相同的，后续的数据一直无法执行
+正确办法：select * from xx where state = '1' order by id where id > last_id limit 100;每次执行后，记录最大的id作为last_id
+
+mysql是ap还是cp的
+ac的。默认情况下的mysql，虽然有多个节点，但多数为主从，只有主节点提供服务，即不存在分区容错性P，所以为ac
+但如果是采用的读写分离，主从都对外提供服务，则为AP
+
+在索引覆盖时，二级索引如何使用MVCC
+这个问题问的是，在使用覆盖索引时，不会回表，但是undolog版本链的头节点又是在聚簇索引中，导致无法使用MVCC
+innodb发现二级索引页有一个PAGE_MAX_TRX_ID（表示修改过该页的最大事务id）太新的，或者二级索引的记录被标记为已删除，innodb可能会使用聚簇索引，即覆盖索引也可能会回表
+innodb在更新数据时，索引的PAGE_MAX_TRX_ID也会更新。如果readview的min_trx_id>page_max_trx_id，则表示该索引可见，可以不回表。否则需要回表
+
+blob和text有什么区别
+blob用来保存二进制数据，比如图片，视频，不支持字符集转换和排序；text保存文本数据，比如小说，支持字符集转换和排序
+
+mysql更新索引时，会锁表吗
+从5.6版本开始，支持online ddl，一般不会锁表。online ddl是尽可能保证执行ddl期间不会阻塞dml操作，尽可能意味着不是所有ddl都会使用online ddl加速
+
+limit执行过程
+limit是最后执行的（from，where，select，distinct，order by，limit）。如果是limit 100,10，则需要对全部结果集排序，即需要查询出全部结果，然后返回100-110；如果是limit 100，则不需要排序，即只需要查询100条数据即可，不需要查询全部结果
+
+一次insert操作，mysql几种log的写入顺序
+写undolog - 写redolo，处于prepare阶段 - 写binlog，刷盘 - 写redolog，处于commit阶段
+
+如何优化join
+添加索引。比如on a.id = b.aid，则在b的aid上建立索引
+小表驱动大表
+数据过滤后再join。比如select xx from (select xx from xx where xx) as xx on xx。把子查询的范围缩小
+使用内连接，即inner join
+8.0版本使用hash join，针对equal-join场景
+
