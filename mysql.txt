@@ -87,6 +87,11 @@ innodb_autoinc_lock_mode参数有以下几种值
 1，连续模式，8.0之前的默认值。在该模式下，Bulk inserts使用AUTO-INC lock，直到sql结束。Simple inserts没有使用AUTO-INC lock，而是使用互斥锁（轻量级锁），互斥锁仅在生成自增值时获取，生成后释放，而非在语句结束时释放，但如果其他事务持有AUTO-INC lock，当前事务也会被阻塞。总的来说，这种模式显著提高了性能，且基于statement的复制仍然安全，但有一个例外，就是Mixed-mode inserts，在该情况下，innodb会分配比需要的行数更多的自增值，由于所有自动分配的值都是连续的，因此多余的值会被丢失
 2，交错模式，8.0之后的默认值。8.0修改了默认值，是因为binlog的默认格式由statement改为了row：statement模式下，需要采用连续的自增锁模式，以保证同样的sql能产生同样的自增值；row模式下则不受sql语句执行顺序的影响。在该模式下，任何INSERT-like都不会使用AUTO-INC lock，多个语句可以并发执行，性能最高，但基于statement的复制不安全。多个语句可以同时生成自增值，即自增值的分配是在多个语句之间可能是交错进行的。同理，Simple inserts生成的自增值是连续的，Bulk inserts生成的自增值可能不连续，innodb会分配一个范围，从这个范围内获取自增值，范围用完后，向innodb申请新的范围
 
+自增计数器的更新规则
+当设置主键自增（AUTO_INCREMENT）时，其自增规则取决于当前自增计数器的值
+show create table中会显示下一个自增值(比如AUTO_INCREMENT=4，则代表新增的下一条数据的id=4)。如果手动插入一条id=8的数据，则自增计数器会更新为9
+自增计数器的更新规则是 “取当前表中最大 ID 与计数器当前值的较大者，再加 1”。手动插入更大的 ID 会强制计数器更新，确保后续自增 ID 不会重复。
+
 排序
 mysql有两种方式生成有序结果：排序操作，或者按索引顺序扫描。type列为index，则使用了索引扫描，extra列包含Using filesort，则进行了排序，内存够时在内存中排序，内存不足时将数据分为很多小部分，每个部分排序然后保存在磁盘，然后合并。排序时会申请行数据的最大空间，比如varchar按最大长度，utf8mb4按4字节申请。如果索引包含a，b，则order by a desc,b desc的extra包含Backward index scan
 
