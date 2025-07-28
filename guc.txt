@@ -1,0 +1,17 @@
+
+CyclicBarrier
+同步工具类，用于让一组线程相互等待，直到所有线程都到达某个共同的 “屏障点” 后，再一起继续执行。与CountDownLatch不同，它的计数器可以重复使用（即 “循环” 特性），适合需要多轮协作的场景
+
+CountDownLatch
+同步工具类，用于让一个或多个线程等待其他线程完成操作后再继续执行。它基于一个计数器实现，初始值为需要等待的操作数量，当计数器减为 0 时，被阻塞的线程会被唤醒
+CountDownLatch latch = new CountDownLatch(n); //a线程或多个线程执行需要满足n个条件
+latch.await(); // 在a线程中调用，则阻塞a线程，直到计数器为0
+latch.countDown(); //每当一个条件完成，计数器减1
+
+Semaphore
+流量控制工具，用于限制同时访问特定资源的线程数量。它通过维护一个许可证（permit）计数器，线程访问资源前必须先获取许可证，使用完毕后释放许可证，从而实现对并发线程数量的精准控制。
+Semaphore semaphore = new Semaphore(5, true); //某个资源允许最多5个线程同时访问。true代表公平，即按请求的顺序获取许可
+semaphore.acquire(); //获取许可
+semaphore.release(); //释放许可
+
+
