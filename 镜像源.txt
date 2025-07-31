@@ -1,0 +1,17 @@
+==========================================ubuntu==========================================
+备份/etc/apt/sources.list并替换为以下
+
+deb http://mirrors.aliyun.com/ubuntu jammy main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu jammy-security main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu jammy-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu jammy-backports main restricted universe multiverse
+#deb http://mirrors.aliyun.com/ubuntu jammy-proposed main restricted universe multiverse
+
+deb-src http://mirrors.aliyun.com/ubuntu jammy main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu jammy-security main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu jammy-updates main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu jammy-backports main restricted universe multiverse
+#deb-src http://mirrors.aliyun.com/ubuntu jammy-proposed main restricted universe multiverse
+
+# 生效
+apt update

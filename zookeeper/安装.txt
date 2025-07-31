@@ -1,0 +1,61 @@
+
+================================安装================================
+在官网下载，以3.5.7为例
+https://archive.apache.org/dist/zookeeper/zookeeper-3.5.7/apache-zookeeper-3.5.7-bin.tar.gz
+
+上传至服务器并解压
+tar -zxvf apache-zookeeper-3.5.7-bin.tar.gz
+
+移动至自己喜欢的位置
+mv apache-zookeeper-3.5.7-bin /usr/local
+cd /usr/local
+mv apache-zookeeper-3.5.7-bin/ zookeeper
+
+配置环境变量
+export PATH=$PATH:/usr/local/zookeeper/bin
+vi /etc/profile
+新增
+export PATH=$PATH:/usr/local/zookeeper/bin
+
+配置zookeeper
+cp /usr/local/zookeeper/conf/zoo_sample.cfg /usr/local/zookeeper/conf/zoo.cfg
+vi /usr/local/zookeeper/conf/zoo.cfg
+新增
+dataDir=/usr/local/zookeeper/data
+dataLogDir=/usr/local/zookeeper/datalog
+admin.serverPort=2182
+# 默认zk只监听127.0.0.1，测试环境把地址全开放
+clientPortAddress=0.0.0.0
+
+设置服务
+vi /lib/systemd/system/zookeeper.service
+
+[Unit]
+Description=ZooKeeper Service
+After=network.target
+
+[Service]
+Type=forking
+User=root
+ExecStart=/usr/local/zookeeper/bin/zkServer.sh start
+ExecStop=/usr/local/zookeeper/bin/zkServer.sh stop
+Restart=on-abnormal
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl enable zookeeper.service
+
+================================集群配置================================
+假设要在3台机器上安装zk
+
+在第一台机器的dataDir下（/usr/local/zookeeper/data）新建myid文件，内容为1
+第二台内容为2，第三台为3
+
+修改3台机器的zoo.cfg文件，新增
+server.1=server1的主机名:2888:3888
+server.2=server2的主机名:2888:3888
+server.3=server3的主机名:2888:3888
+
+2888是leader和follower的通信地址
+leader挂了时，需要通过另一个端口（3888）来进行重新选举

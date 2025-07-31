@@ -1,0 +1,43 @@
+系统环境：WSL-Ubuntu-22.04
+
+sudo su
+===================安装kubectl===================
+
+1.下载
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+2.校验（可选）
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+验证通过时，打印kubectl: OK
+3.安装
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+4.验证
+kubectl version --client
+
+
+===================安装kind===================
+[ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.24.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+验证
+kind --version
+
+
+===================安装minikube===================
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+验证
+minikube version
+
+--docker不推荐使用root用户权限运行
+su rbt
+--添加权限 usermod表示修改用户账户 -a表示添加 -G表示组 docker表示组名 $USER表示当前登录的用户 &&表示当前面的命令执行成功后，执行后面的命令 newgrp表示更新当前用户的有效组
+sudo usermod -aG docker $USER && newgrp docker
+
+启动
+minikube start
+
+
+
+
+

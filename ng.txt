@@ -1,0 +1,89 @@
+
+ubuntu安装ng
+apt update
+apt install nginx -y
+配置文件位于/etc/nginx/
+执行文件位于/usr/sbin/nginx
+更新环境路径
+vi /etc/profile 添加
+export PATH=$PATH:/usr/sbin/
+
+nginx -s signal
+其中signal可以为stop强制关闭/quit优雅关闭/reload重新加载配置文件/reopen重新打开log文件
+比如nginx -s reload 重新加载配置文件
+
+nginx -t
+查看当前生效的配置文件，可检查语法是否有问题
+
+ng配置文件
+{
+	event{}
+	http{
+		server{
+			location / {}
+		}
+	}
+}
+
+静态文件
+location / {
+    root /data/www;
+}
+
+代理服务器的配置示例
+server {
+    listen      8080;
+    location / {
+        proxy_pass http://172.23.160.1:8080;
+    }
+}
+
+LB
+round-robin（默认）
+least-connected
+ip-hash
+另外可配置权重（weight）,概率为n/(n1+n2+...n)
+
+LB示例
+http {
+    upstream myapp1 {
+    	least_conn;
+    	# ip_hash;
+        server srv1.example.com;
+        server srv2.example.com;
+        server srv3.example.com;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://myapp1;
+        }
+    }
+}
+
+超时
+
+proxy_connect_timeout:连接超时时间_发起握手等候响应时间
+proxy_read_timeout:连接成功后等待后端服务器响应时间
+proxy_send_timeout:后端服务器数据回传时间
+nginx使用proxy模块时，默认的读取超时时间是60s
+
+示例
+location / {
+	xxx
+	proxy_read_timeout 3;
+	xxx
+}
+
+设置及使用变量
+server {
+    listen 8080;
+    # 定义变量
+    set $my_var "some value";
+    location / {
+        # 使用变量
+        add_header X-My-Header $my_var;
+    }
+}

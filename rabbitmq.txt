@@ -1,0 +1,9 @@
+
+================================安装================================
+
+通过docker
+# latest RabbitMQ 4.x
+docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management
+
+通过apt-get
+apt-get install rabbitmq-server -y --fix-missing

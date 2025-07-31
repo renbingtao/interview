@@ -1,0 +1,28 @@
+
+===================安装mysql===================
+su
+mkdir -p /data/mysql
+上传mysql的rpm包
+tar -xvf mysql-8.0.39-1.el8.x86_64.rpm-bundle.tar
+rpm -ivh mysql-community-common-8.0.39-1.el8.x86_64.rpm
+rpm -ivh mysql-community-icu-data-files-8.0.39-1.el8.x86_64.rpm
+rpm -ivh mysql-community-client-plugins-8.0.39-1.el8.x86_64.rpm
+rpm -ivh mysql-community-libs-8.0.39-1.el8.x86_64.rpm
+rpm -ivh mysql-community-client-8.0.39-1.el8.x86_64.rpm
+rpm -ivh mysql-community-server-8.0.39-1.el8.x86_64.rpm
+systemctl start mysqld
+
+mysqld --version
+
+//查看临时密码
+cat /var/log/mysqld.log|grep 'temporary password'
+2024-08-13T16:52:35.188083Z 6 [Note] [MY-010454] [Server] A temporary password is generated for root@localhost: 1hwIpPdyvK>/
+
+//自己测试，修改密码策略
+mysql -uroot -p'1hwIpPdyvK>/'
+set global validate_password.policy=0;
+set global validate_password.length=6;
+
+alter user 'root'@'localhost' identified by '123456';
+
+

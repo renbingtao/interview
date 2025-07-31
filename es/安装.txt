@@ -1,0 +1,135 @@
+
+ubuntu安装es
+sudo apt update
+sudo apt install openjdk-17-jdk   # 安装 JDK 17
+java -version                    # 验证安装
+
+# 导入 ES 的 GPG 密钥
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+# 添加 ES 仓库到系统
+echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+# 更新并安装 ES
+sudo apt update
+sudo apt install elasticsearch
+
+# 如果apt下载比较慢，可以手动下载并上传到服务器
+https://mirrors.huaweicloud.com/elasticsearch/7.10.2/elasticsearch-7.10.2-linux-x86_64.tar.gz
+tar -xvf elasticsearch-7.10.2-linux-x86_64.tar.gz
+sudo mv elasticsearch-7.10.2 /usr/share/elasticsearch
+vi /usr/share/elasticsearch/config/elasticsearch.yml
+
+cluster.name: my-application
+node.name: node-1
+network.host: 0.0.0.0
+http.port: 9200
+discovery.seed_hosts: [host1]
+cluster.initial_master_nodes: ["node-1"]
+
+
+# 创建 elasticsearch 用户
+adduser elasticsearch
+# 设置用户密码
+passwd 123456
+# 为 elasticsearch 用户添加 sudo 权限（可选）
+usermod -aG sudo elasticsearch
+# 更改 Elasticsearch 目录的所有者
+chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+创建启动任务
+sudo vi /lib/systemd/system/elasticsearch.service
+添加以下内容
+
+[Unit]
+Description=Elasticsearch service
+Documentation=https://www.elastic.co
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=elasticsearch
+Group=elasticsearch
+ExecStart=/usr/share/elasticsearch/bin/elasticsearch
+LimitMEMLOCK=infinity
+Environment=ES_JAVA_OPTS="-Xms512m -Xmx512m"
+Restart=on-failure
+RestartSec=30s
+StartLimitInterval=300s
+StartLimitBurst=5
+LimitNOFILE=65536
+LimitNPROC=4096
+StandardOutput=journal
+StandardError=inherit
+SyslogIdentifier=elasticsearch
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl daemon-reload
+
+更新系统配置文件（设置内存映射区域的大小）
+vi /etc/sysctl.conf //添加或更新
+vm.max_map_count=262144
+sudo sysctl -p
+
+运行es
+systemctl start elasticsearch
+或手动
+su - elasticsearch
+cd /usr/share/elasticsearch/bin
+./elasticsearch
+
+验证
+curl http://localhost:9200
+./elasticsearch -E "http.port=9200"
+
+安装kibana
+kibana的版本要和es基本一致，否则有兼容问题
+下载
+https://artifacts.elastic.co/downloads/kibana/kibana-7.10.0-linux-x86_64.tar.gz
+tar -xvf kibana-7.10.0-linux-x86_64.tar.gz
+mv kibana-7.10.0-linux-x86_64 /usr/share
+mv /usr/share/kibana-7.10.0-linux-x86_64 /usr/share/kibana
+vi /usr/share/kibana/config/kibana.yml
+
+server.port: 5601
+server.host: "0.0.0.0"
+elasticsearch.hosts: ["http://localhost:9200"]
+i18n.locale: "zh-CN"
+
+chown -R rbt:rbt /usr/share/kibana/
+
+vi /lib/systemd/system/kibana.service
+
+[Unit]
+Description=Kibana Service
+Documentation=https://www.elastic.co/guide/en/kibana/current/index.html
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment=NODE_OPTIONS=--max-old-space-size=1800
+User=elasticsearch
+Group=elasticsearch
+ExecStart=/usr/share/kibana/bin/kibana
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl enable kibana
+
+手动启动
+cd /usr/share/kibana
+./kibana
+
+安装kibana
+kibana是es的图形化界面
+apt install elasticsearch
+vi /etc/kibana/kibana.yml
+添加或更新
+server.host: "0.0.0.0"
+这样就会监听全部ip。如果配置localhost，则只会监听本地
+访问http://localhost:5601/app/home#/

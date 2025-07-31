@@ -1,0 +1,167 @@
+# 需要的安装包
+yum install -y yum-utils
+# 设置镜像仓库
+yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+# 更新yum软件包索引
+yum makecache fast
+# 安装docker ce社区版 ee企业版
+yum install docker-ce docker-ce-cli containerd.io
+# 启动docker
+systemctl start docker
+# 查看是否安装成功
+docker version或docker -v
+
+配置镜像
+vi /etc/docker/daemon.json
+{
+    "registry-mirrors": [
+        "https://docker.xuanyuan.me",
+        "https://do.nark.eu.org",
+        "https://docker.registry.cyou",
+        "https://docker-cf.registry.cyou",
+        "https://docker.jsdelivr.fyi",
+        "https://dockercf.jsdelivr.fyi",
+        "https://dockertest.jsdelivr.fyi"
+    ]
+}
+
+docker重启
+systemctl restart docker
+查看镜像是否生效 - Registry Mirrors行
+docker info
+
+
+================================运维视角================================
+查看镜像
+docker image ls
+
+运行镜像 -it表示进入容器,输入ctrl PQ可退出且不杀死容器,exit则会杀死容器,因为唯一的bash进程已经被杀死了,my-name为自定义的容器名称
+docker container run --name my-name -it ubuntu:latest /bin/bash
+
+查看容器
+docker container ls
+
+进入容器 magical_lovelace为容器的名字，在docker container ls中可以查看，该命令实际上创建了新的bash进程并连接到容器，因此exit不会杀死容器，因为原bash还在运行中
+docker container exec -it magical_lovelace bash
+
+停止容器 已停止的容器可以通过docker container ls -a来查看
+docker container stop magical_lovelace
+
+删除容器 docker container ls -a也无法查看到
+docker container rm magical_lovelace
+
+================================开发视角================================
+
+创建springboot应用
+gradle build打成jar包--> rbt-springboot-0.0.1-SNAPSHOT.jar
+不能用gradle jar，否则生成的jar包不包含依赖的lib
+创建Dockerfile，以下为示例
+
+FROM openjdk:latest
+LABEL maintainer="422511643@qq.com"
+ADD rbt-springboot-0.0.1-SNAPSHOT-plain.jar test.jar
+ENTRYPOINT ["java","-jar","test.jar"]
+EXPOSE 8080
+
+上传jar包到服务器
+创建镜像，-t为镜像打标签，-f指定Dockerfile的路径和名称
+docker build -t rbt-demo .
+启动容器，指定端口映射 -d 容器在后台运行
+docker run -d --publish 8080:8080 rbt-demo
+
+Dockerfile命令含义
+ADD和COPY：从容器外复制到容器内，ADD添加tar，zip等归档文件，并自动解压
+ENV：环境变量
+EXPOSE：指定容器中的进程监听某个端口，docker可以将该端口暴漏出来
+VOLUMN：将文件或目录声明为volumn，docker会将其映射出来
+WORKDIR：设置工作目录
+RUN：创建镜像时运行的指令，会创建新的镜像层
+CMD：容器启动后执行的命令，有多个以最后一个为准，若docker run指定了参数，则参数会替换CMD的参数
+ENTRYPOINT：类似CMD，区别是即使docker run指定了其他命令，entrypoint也不会被忽略，一般用于运行一个应用程序或服务
+
+Dockerfile的指令不区分大小写，但一般都是大写
+通过docker image history查看构建镜像的过程中执行了哪些指令
+entrypoint、workdir、cmd、label等不会创建新的镜像层，只是增加了元数据信息
+
+================================镜像================================
+
+拉取
+docker image pull alpine:latest
+
+创建一个新的镜像并打上已存在的标签，则老的镜像的repository和tag都会变为<none>，这种镜像成为悬虚镜像
+
+移除全部的悬虚镜像
+docker image prune
+
+查看镜像分层 Layers
+docker image inspect ubuntu:latest
+
+查看摘要（hash值）
+docker image ls --digests alpine
+
+================================容器================================
+
+停止名为name的容器，使其切换到暂停状态
+docker container stop name
+
+将容器重新启动
+docker container start name
+
+推荐使用两阶段方式来停止并杀死容器，即stop && rm。因为stop会向容器pid=1的进程发送sigterm信号，为进程预留一个优雅停止的机会。
+
+
+重启策略 docker run --restart always
+always：除非容器被明确停止，比如docker container stop，否则会一直尝试重启处于停止状态的容器，比如通过exit杀死的容器会重启。docker daemon重启时，always且stop状态的容器也会重启
+unless-stopped：和上面的区别时，docker daemon重启时，unless-stopped且stop状态的容器不会重启
+on-failure：退出容器且返回值不是0时重启容器。docker daemon重启时，on-failure且stop状态的容器也会重启
+
+
+================================应用的容器化================================
+
+为指定的镜像添加一个额外的标签
+docker image tag oldImage:tag newImage:tag
+
+镜像层缓存
+执行命令时，docker会检查缓存中是否有基于同一个基础镜像，且命令相同的镜像层
+一旦找不到缓存，后续都不使用缓存
+所以尽量将容易发生变化的指令置于Dockerfile文件的后方执行
+COPY和ADD会检查复制的内容是否发生了变化，即使指令本身没有变化，但复制的内容可能发生了变化。原理是计算每一个复制文件的checksum值，并与缓存中的对比
+
+
+
+================================卷与持久化================================
+
+用户创建卷，创建容器，将卷挂载到容器上。即使容器被删除，卷与数据仍然存在
+
+创建新卷，名为myvol，默认使用local驱动
+docker volume create myvol
+
+查看卷
+docker volume ls
+
+查看详情，其中scope=local表示只能用于当前docker主机的容器，mountpoint表示卷位于主机上的位置
+docker volume inspect myvol
+
+删除所有未挂载的卷
+docker volume prune
+
+删除myvol卷
+docker volume rm myvol
+
+启动容器时指定卷，创建或挂载myvol卷，挂载到容器内的/vol路径
+docker run -it --mount source=myvol,target=/vol image_name
+
+
+================================docker安全================================
+
+安全的本质就是分层
+内核命名空间能够将操作系统拆分，使其看起来就像多个独立的操作系统
+docker的本质就是命名空间的有组织集合
+linux docker利用的内核命名空间:进程ID（PID），网络（NET），文件系统/挂载（MNT），进程内通信（IPC），用户（USER），UTS
+linux主机有自己的根命名空间
+
+PID：每个容器都有自己的进程树，看不到其他容器或主机的进程树
+挂载点命名空间：每个容器都有互相隔离的根目录，容器内的进程不能访问其他容器或linux主机上的目录
+
+容器之间是互相隔离的，却共享OS资源，控制组用于限额，防止单个容器占用主机全部的CPU、内存或者IO
+
