@@ -7,3 +7,21 @@ docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-manag
 
 通过apt-get
 apt-get install rabbitmq-server -y --fix-missing
+
+================================常见api================================
+
+查看用户
+rabbitmqctl list_users
+
+验证用户名密码
+rabbitmqctl authenticate_user <用户名> <密码>
+
+查看mq各种状态
+rabbitmqctl status
+示例
+{listeners,[
+{'amqp',5672,"::"},  % AMQP 协议，端口 5672，监听所有地址（:: 表示 IPv6 任意地址）
+{'http',15672,"::"}]}  % HTTP 管理界面，端口 15672
+配置文件路径
+Config files
+ * /etc/rabbitmq/rabbitmq.conf
