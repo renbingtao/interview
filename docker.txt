@@ -35,8 +35,12 @@ docker info
 查看镜像
 docker image ls
 
-运行镜像 -it表示进入容器,输入ctrl PQ可退出且不杀死容器,exit则会杀死容器,因为唯一的bash进程已经被杀死了,my-name为自定义的容器名称
+运行镜像 -it表示进入容器（-itd表示后台运行）,输入ctrl PQ可退出且不杀死容器,exit则会杀死容器,因为唯一的bash进程已经被杀死了,my-name为自定义的容器名称
 docker container run --name my-name -it ubuntu:latest /bin/bash
+
+保存镜像 将容器 my_container 保存为名为 my_image 的镜像
+docker commit my_container my_image:v1
+docker commit 创建的镜像属于 "黑箱" 操作，无法追踪具体修改内容，最佳实践是使用 Dockerfile 来构建镜像
 
 查看容器
 docker container ls
