@@ -20,11 +20,14 @@ java -version
 ================================安装kafka================================
 官网下载kafka 这里以2.1.3-3.9.1为例
 https://kafka.apache.org/downloads
+或者https://mirrors.aliyun.com/apache/kafka/3.9.1/?spm=a2c6h.25603864.0.0.e3f4126eSpVubq
 
 tar -xvf kafka_2.13-3.9.1.tgz
 mv kafka_2.13-3.9.1 /usr/local/kafka
 
-更新配置文件config/server.properties
+更新配置文件
+cp /usr/local/kafka/config/server.properties /usr/local/kafka/config/server.properties.bak
+vi /usr/local/kafka/config/server.properties
 listeners=PLAINTEXT://0.0.0.0:9092 #监听所有网络，如果改成192.168.xx或//则只能监听内网
 advertised.listeners=PLAINTEXT://localhost:9092
 log.dirs=/usr/local/kafka/logs  # 自定义日志路径
@@ -33,6 +36,7 @@ vi /etc/profile
 新增
 export PATH=/usr/local/kafka/bin:$PATH
 
+source /etc/profile
 vi /lib/systemd/system/kafka.service
 
 [Unit]

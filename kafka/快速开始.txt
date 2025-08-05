@@ -15,5 +15,3 @@ kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost
 消费消息
 kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap-server localhost:9092
 当有消息产生时，就会收到。按ctrl+c退出
-
-
