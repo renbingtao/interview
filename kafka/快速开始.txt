@@ -1,0 +1,19 @@
+
+创建topic，名为quickstart-events
+kafka-topics.sh --create --topic quickstart-events --bootstrap-server localhost:9092
+
+查看全部topic
+kafka-topics.sh --list --bootstrap-server localhost:9092
+
+查看quickstart-events topic的信息
+kafka-topics.sh --describe --topic quickstart-events --bootstrap-server localhost:9092
+
+发送消息
+kafka-console-producer.sh --topic quickstart-events --bootstrap-server localhost:9092
+每一行是一个消息。按ctrl+c退出
+
+消费消息
+kafka-console-consumer.sh --topic quickstart-events --from-beginning --bootstrap-server localhost:9092
+当有消息产生时，就会收到。按ctrl+c退出
+
+

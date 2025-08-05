@@ -42,6 +42,7 @@ channel.basicPublish("", "hello", null, message.getBytes());
 
 channel.basicConsume(RPC_QUEUE_NAME, true, deliverCallback, (consumerTag -> {}));
 调用上述代码为消费消息，第二个参数为是否自动确认（默认true），开启时，只要消息被投递给消费者，会立即从队列中删除，无论消息处理成功或失败（比如程序崩溃）
+消费者确认消息后，消息会被永久删除。如果消费失败或者拒绝消费，则根据配置，可能被删除，可能被重新放回队列再次消费，可能放入死信队列
 
 channel.exchangeDeclare("logs", "fanout", true);
 通过上面的代码手动创建一个名为logs的fanout（扇型）类型的交换机，这种类型的交换机会把消息路由到它绑定的所有队列（方法调用时传一个特定的队列名也没用）。

@@ -1,0 +1,57 @@
+================================安装java================================
+从oracle官网下载安装包（选择x64）
+https://www.java.com/zh-cn/download/manual.jsp
+
+tar -xvf jre-8u461-linux-x64.tar.gz
+mkdir /usr/lib/jdk
+mv jre1.8.0_461 /usr/lib/jdk/
+
+vi /etc/profile
+新增
+export JAVA_HOME=/usr/lib/jdk/jre1.8.0_461
+export JRE_HOME=${JAVA_HOME}/jre
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib
+export PATH=${JAVA_HOME}/bin:$PATH
+
+source /etc/profile
+
+验证
+java -version
+================================安装kafka================================
+官网下载kafka 这里以2.1.3-3.9.1为例
+https://kafka.apache.org/downloads
+
+tar -xvf kafka_2.13-3.9.1.tgz
+mv kafka_2.13-3.9.1 /usr/local/kafka
+
+更新配置文件config/server.properties
+listeners=PLAINTEXT://0.0.0.0:9092 #监听所有网络，如果改成192.168.xx或//则只能监听内网
+advertised.listeners=PLAINTEXT://localhost:9092
+log.dirs=/usr/local/kafka/logs  # 自定义日志路径
+
+vi /etc/profile
+新增
+export PATH=/usr/local/kafka/bin:$PATH
+
+vi /lib/systemd/system/kafka.service
+
+[Unit]
+Description=Apache Kafka Server
+After=network.target remote-fs.target zookeeper.service
+Requires=zookeeper.service
+
+[Service]
+Type=forking
+User=root
+Group=root
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/usr/local/kafka/bin/kafka-server-start.sh -daemon /usr/local/kafka/config/server.properties
+ExecStop=/usr/local/kafka/bin/kafka-server-stop.sh
+Restart=on-failure
+RestartSec=10s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl enable kafka
