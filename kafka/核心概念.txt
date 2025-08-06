@@ -42,4 +42,4 @@ mq不会主动推送消息，而是消费者主动拉取消息。消费消息时
 consumer group
 由一个或多个consumer组成，这些消费者共同订阅一个或多个topic。对于某个partition，同一时刻只能被消费者组内的一个消费者消费（但可以被其他消费者组的消费者同时消费）
 组内一个消费者可以消费多个partition。比如topic包含6个partition，组由3个消费者组成，则每个消费者可分配2个partition
-
+每个消费者组都有自己的offset，互不干扰
