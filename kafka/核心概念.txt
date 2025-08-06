@@ -25,6 +25,12 @@ leader故障时，ISR中的副本有资格被选举为新leader
 broker
 kafka实例
 
+key
+生产者发送消息时，可以指定key。key是用来决定消息被分配到哪个partition的。kafka会对key进行hash计算，并根据结果将消息映射到某个partition
+这保证了相同 key 的消息会被分配到同一个分区（除非分区数量变更或重新分区）
+这一特性对需要顺序消费的场景至关重要：由于单个分区内的消息是严格按顺序存储和消费的，相同 key 的消息进入同一分区后，消费者就能按发送顺序处理它们
+key为null时，消息会随机分配到不同partition
+
 zookeeper作用
 2.8及以前，zk用来协调各个broker，包括broker的注册与发现，partition leader选举，保存元数据（topic，partition，replication）
 2.8后引入KRaft模式，最终取代zk
