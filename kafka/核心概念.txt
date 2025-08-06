@@ -3,13 +3,37 @@ topic
 消息的逻辑分类，类似于数据库的表，由一个或多个partition组成
 
 partition
-每个分区内的消息是有序的（按写入顺序排列，用偏移量 offset 标识位置），但不同分区之间的消息无序。
-分区会分散存储在 Kafka 集群的不同 Broker 节点上，实现负载均衡。
-可通过增加分区数量提升 Topic 的吞吐量（分区数越多，并行处理能力越强）。
+每个分区内的消息是有序的（按写入顺序排列，用偏移量 offset 标识位置），但不同分区之间的消息无序
+分区会分散存储在 Kafka 集群的不同 Broker 节点上，实现负载均衡
+可通过增加分区数量提升 Topic 的吞吐量（分区数越多，并行处理能力越强）
+每个分区实际上是一个文件夹，里面包含3个文件:xxx.index,xxx.log,xxx.timeindex
+index记录了offset->物理文件位置
+log记录了消息内容
+timeindex记录了时间戳->offset，比如(1620000000000, 100), (1620000001000, 200), ...
+因此在一个分区内，消息是顺序的
 
 offset
-每个分区中的消息都有一个唯一的 offset（从 0 开始的递增整数），用于标识消息在分区中的位置。
-消费者通过记录 offset 来跟踪自己的消费进度（如 “已消费到 offset=100 的消息”）。
+每个分区中的消息都有一个唯一的 offset（从 0 开始的递增整数），用于标识消息在分区中的位置
+消费者通过记录 offset 来跟踪自己的消费进度（如 “已消费到 offset=100 的消息”）
 
 replication
-为了保证可靠性，引入了副本机制，每个分区可以配置多个副本，其中一个为leader，其他为follower
+为了保证可靠性，引入了副本机制，每个分区可以配置多个副本，其中一个为leader，其他为follower，一般来说分布在不同的broker上
+leader处理客户端请求；follower被动复制leader的数据，不处理客户端请求。消费者只能从leader消费消息，而不能从follower消费
+ISR：In-Sync Replicas，同步副本集合，与领导者保持同步的副本（包括领导者自身）
+leader故障时，ISR中的副本有资格被选举为新leader
+
+broker
+kafka实例
+
+zookeeper作用
+2.8及以前，zk用来协调各个broker，包括broker的注册与发现，partition leader选举，保存元数据（topic，partition，replication）
+2.8后引入KRaft模式，最终取代zk
+4.0完全移除zk模式
+
+consumer
+mq不会主动推送消息，而是消费者主动拉取消息。消费消息时可以指定partition（发送时也可以指定）
+
+consumer group
+由一个或多个consumer组成，这些消费者共同订阅一个或多个topic。对于某个partition，同一时刻只能被消费者组内的一个消费者消费（但可以被其他消费者组的消费者同时消费）
+组内一个消费者可以消费多个partition。比如topic包含6个partition，组由3个消费者组成，则每个消费者可分配2个partition
+
