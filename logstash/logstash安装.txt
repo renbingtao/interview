@@ -1,0 +1,21 @@
+
+官网下载
+https://www.elastic.co/cn/downloads/logstash
+
+tar -xvf logstash-9.1.1-linux-x86_64.tar.gz
+mv logstash-9.1.1 /usr/share/logstash
+
+创建用户
+groupadd logstash
+useradd -g logstash -d /home/logstash -m -s /sbin/nologin logstash
+
+创建配置文件
+vi /usr/share/logstash/config/logstash.conf
+
+
+
+
+验证
+/usr/share/logstash/bin/logstash -e 'input { abc } output { def }'
+
+
