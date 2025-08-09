@@ -1,0 +1,30 @@
+
+vi /etc/logstash/conf.d/toes.conf
+
+input {
+    stdin {
+    }
+}
+output {
+        elasticsearch {
+                hosts => ["localhost:9200"]
+                index => "rbtlogs-%{+YYYY-MM-dd}"
+        }
+}
+
+/usr/share/logstash/bin/logstash "--path.settings" "/usr/share/logstash/config"
+
+输入123
+随后在kibana中可以查询到
+{
+    "_index" : "rbtlogs-2025-08-09",
+    "_type" : "_doc",
+    "_id" : "E2hWjpgBtRLCs2JWAKid",
+    "_score" : 1.0,
+    "_source" : {
+      "message" : "345",
+      "@version" : "1",
+      "host" : "rbt-computer",
+      "@timestamp" : "2025-08-09T10:17:37.504Z"
+    }
+}

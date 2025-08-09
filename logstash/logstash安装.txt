@@ -1,21 +1,66 @@
 
 官网下载
 https://www.elastic.co/cn/downloads/logstash
+根据es的版本选择logstash，避免兼容性问题
+https://www.elastic.co/downloads/past-releases/logstash-7-10-2
 
-tar -xvf logstash-9.1.1-linux-x86_64.tar.gz
-mv logstash-9.1.1 /usr/share/logstash
+tar -xvf logstash-7.10.2-linux-x86_64.tar.gz
+mv logstash-7.10.2 /usr/share/logstash
+chmod -R 777 /usr/share/logstash
 
 创建用户
 groupadd logstash
-useradd -g logstash -d /home/logstash -m -s /sbin/nologin logstash
+useradd -g logstash -d /home/logstash -m -s /bin/bash logstash
+设置密码
+passwd logstash
+输入123456（密码）
 
-创建配置文件
-vi /usr/share/logstash/config/logstash.conf
+验证（su logstash）
+/usr/share/logstash/bin/logstash -e 'input { stdin {} } output { stdout {}}'
+随便输入一些信息，比如abc，输出如下
+{
+    "message" => "abc",
+    "event" => {
+        "original" => "abc"
+    },
+    "@timestamp" => 2025-08-09T07: 04: 26.889423652Z,
+    "host" => {
+        "hostname" => "rbt-computer"
+    },
+    "@version" => "1"
+}
+所有的输入都转换成了message
+过滤（filter）则是对message进行格式转换
 
+新建配置文件
+cd /usr/share/logstash/config
+mv pipelines.yml pipelines.yml.bak
+mkdir -p /etc/logstash/conf.d
+vi pipelines.yml
 
+- pipeline.id: main
+  path.config: "/etc/logstash/conf.d/*.conf"
 
+vi /lib/systemd/system/logstash.service
 
-验证
-/usr/share/logstash/bin/logstash -e 'input { abc } output { def }'
+[Unit]
+Description=Logstash
+Documentation=https://www.elastic.co/guide/en/logstash/current/index.html
+After=network.target
 
+[Service]
+Type=simple
+User=logstash
+Group=logstash
 
+ExecStart=/usr/share/logstash/bin/logstash "--path.settings" "/usr/share/logstash/config"
+Restart=always
+WorkingDirectory=/usr/share/logstash
+Nice=19
+LimitNOFILE=16384
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl daemon-reload
+systemctl enable logstash

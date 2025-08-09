@@ -1,0 +1,25 @@
+
+vi /etc/logstash/conf.d/kafka2es.conf
+
+input {
+    kafka {
+        bootstrap_servers => "localhost:9092"  # Kafka的broker地址和端口，多个用逗号分隔
+        topics => [ "quickstart-events" ]  # 要消费的Kafka topic名称，可指定多个
+        #codec => "json"  # 假设消息是JSON格式，用于解析消息内容
+        auto_offset_reset => "earliest"  # 从最早的消息开始消费，可根据需求改为latest等
+        group_id => "quickstart-group"  # 消费者组ID
+    }
+}
+
+filter {
+    mutate {
+        add_field => { "message_source" => "kafka" }  # 增加一个字段标记消息来源
+    }
+}
+
+output {
+    elasticsearch {
+        hosts => [ "localhost:9200" ]  # Elasticsearch地址，多个用逗号分隔
+        index => "kafka_messages-%{+YYYY.MM.dd}"  # 按日期创建索引
+    }
+}

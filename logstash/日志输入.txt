@@ -1,0 +1,35 @@
+
+创建一个log文件
+vi /tmp/rbtlog
+
+2025-06-29T20:51:19.161+08:00  INFO 58188 --- [rbt] [main] com.example.demo.RbtApplication          : Starting RbtApplication using Java 17.0.2 with PID 58188 (E:\intelliJProject\springboot\out\production\classes started by rbt in E:\intelliJProject\springboot)
+2025-06-29T20:51:19.166+08:00  INFO 58188 --- [rbt] [main] com.example.demo.RbtApplication          : No active profile set, falling back to 1 default profile: "default"
+2025-06-29T20:51:19.894+08:00  INFO 58188 --- [rbt] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-06-29T20:51:19.904+08:00  INFO 58188 --- [rbt] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-06-29T20:51:19.904+08:00  INFO 58188 --- [rbt] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2025-06-29T20:51:19.943+08:00  INFO 58188 --- [rbt] [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-06-29T20:51:19.943+08:00  INFO 58188 --- [rbt] [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 722 ms
+2025-06-29T20:51:20.255+08:00  INFO 58188 --- [rbt] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-06-29T20:51:20.265+08:00  INFO 58188 --- [rbt] [main] com.example.demo.RbtApplication          : Started RbtApplication in 1.486 seconds (process running for 1.733)
+2025-06-29T20:51:26.415+08:00  INFO 58188 --- [rbt] [http-nio-8080-exec-4] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-06-29T20:51:26.416+08:00  INFO 58188 --- [rbt] [http-nio-8080-exec-4] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-06-29T20:51:26.416+08:00  INFO 58188 --- [rbt] [http-nio-8080-exec-4] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2025-06-29T20:51:26.435+08:00  INFO 58188 --- [rbt] [http-nio-8080-exec-4] c.e.demo.controller.StudentController    : get student
+
+vi /etc/logstash/conf.d/fileInput.conf
+
+input {
+    file {
+        path => "/tmp/rbtlog"  # 要读取的文件路径，这里是/tmp/rbtlog
+        start_position => "beginning"  # 从文件开头开始读取，首次运行后若想从新增内容读可改为"end"
+        sincedb_path => "/dev/null"  # 测试时禁用 sincedb（记录已读位置），生产环境可去掉用默认
+    }
+}
+
+output {
+    stdout {
+        codec => rubydebug  # 以格式化的方式输出事件数据，方便查看详细内容
+    }
+}
+
+/usr/share/logstash/bin/logstash "--path.settings" "/usr/share/logstash/config"

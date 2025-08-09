@@ -1,0 +1,30 @@
+
+vi /etc/logstash/conf.d/file2es.conf
+
+input {
+    file {
+        path => "/tmp/rbtlog"               # 目标文件路径
+        start_position => "beginning"       # 首次运行从文件开头读取
+        sincedb_path => "/dev/null"         # 测试时禁用sincedb（避免记录读取位置）
+        type => "rbtlog"                    # 标记日志类型（方便过滤处理）
+        stat_interval => 1                  # 每秒检查文件变化（默认1秒，可调整）
+    }
+}
+filter {
+    if [type] == "rbtlog" {
+        mutate {
+            add_field => {
+                "log_source" => "/tmp/rbtlog"
+            }  # 添加自定义字段标记来源
+        }
+    }
+}
+output {
+  elasticsearch {
+    hosts => [ "localhost:9200" ]
+    index => "rbtlog-%{+YYYY-MM-dd}"
+    }
+}
+
+/usr/share/logstash/bin/logstash "--path.settings" "/usr/share/logstash/config"
+
