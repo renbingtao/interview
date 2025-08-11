@@ -1,0 +1,4 @@
+sudo apt install redis-server
+验证
+redis-server --version
+
