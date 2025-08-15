@@ -1,40 +1,39 @@
 
-在xml中
-指定application，每个应用的application.name应不同
-指定registry，用来定义服务注册中心
-指定protocol，用来表示通信协议
-指定service，用来提供的服务，其中的interface为接口，ref为具体的实现类
-指定reference，用来声明要远程调用的接口，其中的interface为接口
+一般有3个工程：消费者，提供者，api接口。消费者和提供者都接入api接口
 
-stub
-本地存根，类似于aop，在客户端发起远程调用之前或之后执行一些操作，比如参数校验，读取缓存，返回值封装，记录日志等
 
-zk宕机后，服务的提供者和消费者仍能通过本地缓存进行调用
-负载均衡：随机（可加权）、轮询（可加权）、最小活跃数（活跃指提供者正在处理的调用数量）、一致性hash（请求路径+参数）
-服务降级：可以在dubbo管理台配置，服务消费者发起请求时，直接返回空，或提供方处理异常时（比如超时）返回空
-集群容错模式：
-    failover：默认，调用失败后重试其他服务器，要求接口幂等，可设置retries
-    failfast：只发起一次调用，失败立即报错，适用于非幂等接口，比如新增记录
-    failsafe：失败时忽略，适用于写入审计日志等操作
-    failback：失败自动恢复，后台记录失败消息，定期重发，适用于消息通知
-    forking：同时给多台服务器发送请求，一个成功即可。适用于对实时性高的场景
-    broadcast：广播，给所有服务器发请求，任意一台失败就报错。适用于同步，如更新缓存等
+dubbo集成springboot
+提供者示例
+@DubboService
+public class DemoServiceImpl implements DemoService {
+    @Override
+    public String sayHello(String name) { return "Hello " + name; }
+}
+配置文件
+dubbo:
+  application:
+      name: dubbo-springboot-demo-provider
+      logger: slf4j
+  protocol:
+    name: tri
+    port: 50052
+  registry:
+    address: nacos://${nacos.address:127.0.0.1}:8848?username=nacos&password=nacos
 
-序列化协议：默认使用Hessian2，序列化后体积较小，性能中等，平衡了性能和兼容。与之相比，json序列化后体积较大，性能较低，但可读性高
-Dubbo 3默认使用Protobuf，谷歌推出的二进制协议，序列化后体积极小、性能极高
 
-远程调用协议：默认使用dubbo原生协议，基于TCP，长连接，NIO
+消费者示例
+@DubboReference
+private DemoService demoService;
+配置文件
+dubbo:
+  application:
+      name: dubbo-springboot-demo-consumer
+      logger: slf4j
+      qos-port: 33333
+  registry:
+    address: nacos://${nacos.address:127.0.0.1}:8848?username=nacos&password=nacos
 
-缓存机制
-服务端缓存：保存在服务端，有LRU cache、thread local cache（缓存只对当前线程可见）、concurrentmap cache三种
-客户端缓存：保存在客户端，有LRU cache、thread local cache
 
-dubbo如何实现像本地调用一样进行远程调用的
-核心技术是动态代理，使用jdk生成代理类，实现了接口方法。在进行本地接口调用时，通过invoke将请求转发到远程的服务提供方
-
-dubbo的整体架构是怎样的
-dubbo中有多个角色，分别是服务提供者，服务消费者，注册中心。一次服务调用要经过服务注册，服务发现，服务调用三个过程
-服务注册：服务提供者在启动时，会向注册中心进行注册，提供服务相关的信息，比如ip端口协议等
-服务发现：服务消费者在启动时，向注册中心订阅服务，注册中心返回提供者列表。如果提供者发生变化，dubbo也会通知消费者
-服务调用：服务调用者根据负载均衡策略选择一个提供者（客户端负载均衡），发起远程调用。消费者将请求序列化为二进制数据后通过网络发送，提供者则反序列化
-
+dubbo.application:每个应用的application.name应不同
+dubbo.registry:用来定义服务注册中心
+dubbo.protocol:用来表示通信协议
