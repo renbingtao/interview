@@ -4,6 +4,7 @@
 
 dubbo集成springboot
 提供者示例
+启动类添加@EnableDubbo
 @DubboService
 public class DemoServiceImpl implements DemoService {
     @Override
@@ -22,6 +23,7 @@ dubbo:
 
 
 消费者示例
+启动类添加@EnableDubbo
 @DubboReference
 private DemoService demoService;
 配置文件
