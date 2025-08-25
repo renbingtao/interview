@@ -29,7 +29,7 @@ mv kafka_2.13-3.9.1 /usr/local/kafka
 cp /usr/local/kafka/config/server.properties /usr/local/kafka/config/server.properties.bak
 vi /usr/local/kafka/config/server.properties
 listeners=PLAINTEXT://0.0.0.0:9092 #监听所有网络，如果改成192.168.xx或//则只能监听内网
-advertised.listeners=PLAINTEXT://localhost:9092 #包括给外部访问的地址，配置成localhost可以在当前节点测试
+advertised.listeners=PLAINTEXT://localhost:9092 #暴漏给外部访问的地址，即外部通过该地址访问kafka，配置成localhost可以在当前节点测试
 advertised.listeners=PLAINTEXT://172.30.23.131:9092 #通过ip addr查询eth0的地址，配置后允许windows系统上的进程访问
 log.dirs=/usr/local/kafka/logs  # 自定义日志路径，包含partition对应的文件夹
 
