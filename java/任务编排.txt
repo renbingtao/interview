@@ -1,0 +1,13 @@
+
+CompletableFuture.supply:无参，有返回
+CompletableFuture.run:无参，有返回
+async是否异步
+
+taskA.thenCombine(taskB,(a,b) -> { a+b })
+taskA和taskB 【并行执行】，都执行完后执行a+b
+
+taskA.thenCompose(s -> { return CompletableFuture.supplyAsync(() -> s+xx ); })
+taskA执行完成后，得到返回值s，再创建新的异步CompletableFuture，执行s+xx
+
+taskA.thenApply
+还是继续在taskA线程中执行
