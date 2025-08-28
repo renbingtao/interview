@@ -1,17 +1,13 @@
 ==========================================ubuntu==========================================
-备份/etc/apt/sources.list并替换为以下
+备份/etc/apt/sources.list并替换为以下（以清华大学镜像源为例https://mirror.tuna.tsinghua.edu.cn/help/ubuntu/）
 
-deb http://mirrors.aliyun.com/ubuntu jammy main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu jammy-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu jammy-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu jammy-backports main restricted universe multiverse
-#deb http://mirrors.aliyun.com/ubuntu jammy-proposed main restricted universe multiverse
-
-deb-src http://mirrors.aliyun.com/ubuntu jammy main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu jammy-security main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu jammy-updates main restricted universe multiverse
-deb-src http://mirrors.aliyun.com/ubuntu jammy-backports main restricted universe multiverse
-#deb-src http://mirrors.aliyun.com/ubuntu jammy-proposed main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
+deb http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse
 
 # 生效
-apt update
+apt-get update
+
+如果域名ping不通，检查/etc/resolv.conf，内容改为
+nameserver 8.8.8.8

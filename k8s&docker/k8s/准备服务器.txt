@@ -1,0 +1,37 @@
+
+基于vmware安装3台ubuntu
+
+# 安装ssh
+apt update && apt install -y openssh-server vim
+
+配置静态IP
+cd /etc/netplan
+cp 01-network-manager-all.yaml 01-network-manager-all.yaml.bak
+vi 01-network-manager-all.yaml
+修改如下
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens33:
+      dhcp4: no
+      addresses: [自定义ip/24]
+      nameservers:
+        addresses: [8.8.8.8, 8.8.4.4]
+
+netplan apply
+
+master  ip设置为192.168.10.50
+node1   ip设置为192.168.10.102
+node2   ip设置为192.168.10.103
+
+验证网络
+在master中执行
+ping 192.168.10.102
+ping 192.168.10.103
+
+# 关闭 Swap（K8s 要求）
+swapoff -a
+# 永久关闭（注释 swap 行）
+sed -i '/swap/s/^/#/' /etc/fstab
+
