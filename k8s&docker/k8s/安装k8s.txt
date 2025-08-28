@@ -1,0 +1,105 @@
+
+================================= 所有节点安装docker、kubeadm、kubelet、kubectl =================================
+1.卸载之前的docker
+apt remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine
+
+2.安装docker-ce
+apt install -y thin-provisioning-tools lvm2
+# 设置docker repo的位置
+apt install -y ca-certificates curl gnupg lsb-release
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt-get update
+# 安装docker及docker-cli
+apt-get install -y docker-ce docker-ce-cli containerd.io
+# 配置docker加速
+mkdir -p /etc/docker
+tee /etc/docker/daemon.json << EOF
+{
+    "registry-mirrors":["https://82m9ar63.mirror.aliyuncs.com"]
+}
+EOF
+systemctl daemon-reload
+systemctl restart docker
+systemctl enable docker
+
+3.安装kubeadm、kubelet、kubectl
+apt-get install -y kubelet=1.25.10-00 kubeadm=1.25.10-00 kubectl=1.25.10-00
+
+systemctl enable kubelet
+systemctl start kubelet
+
+# 生成并修改 containerd 配置文件
+containerd config default | tee /etc/containerd/config.toml
+vi /etc/containerd/config.toml
+修改内容
+[plugins."io.containerd.grpc.v1.cri"]
+将sandbox_image改成registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+将SystemdCgroup改为true
+
+modprobe br_netfilter
+vi /etc/modules-load.d/br_netfilter.conf
+内容为
+br_netfilter
+
+================================= 部署master节点 =================================
+在master节点执行
+建议先提前拉取镜像
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.9.3
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.6-0
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
+
+如果出现failed to pull image registry.k8s.io/pause:3.8，则看情况修改镜像的tag
+docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8 registry.k8s.io/pause:3.8
+
+验证
+docker images
+
+vi /etc/containerd/config.toml
+注释掉其中的：disabled_plugins = ["cri"]
+systemctl restart containerd
+
+mkdir /k8s-install
+cd /k8s-install/
+wget https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz
+tar -xzvf cni-plugins-linux-amd64-v0.9.1.tgz -C /opt/cni/bin/
+
+kubeadm init --apiserver-advertise-address=192.168.10.50 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10
+
+# 若执行失败，重新执行init时，需要先执行下面的步骤
+# 清理残留旧组件
+rm /etc/kubernetes/manifests/*.yaml
+rm -rf /var/lib/etcd/*
+# 停止kubelet，否则会端口占用
+systemctl stop kubelet
+
+执行成功后，按提示执行
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+如果是root用户，可以执行
+export KUBECONFIG=/etc/kubernetes/admin.conf
+
+将kube-flannel.yml上传，执行
+kubectl apply -f kube-flannel.yml
+如果希望回滚这个配置，则执行
+kubectl delete -f kube-flannel.yml
+
+记录管理台输出的kubeadm join命令。如果清除了，可以再次生成
+kubeadm token create --print-join-command
+
+================================= node节点加入 =================================
+
+对node1和node2执行
+kubeadm join 192.168.10.50:6443 --token qzkimv.1tr2je5t3brezkp6 --discovery-token-ca-cert-hash sha256:60c55958dea1e62797b80e744c002ef3eba72b5e6bdb2b8fe269c790a50c5537
+
+在master查看
+kubectl get nodes
+如果状态是NotReady，稍等一会，flannel正在创建网络。等待状态变为Ready
