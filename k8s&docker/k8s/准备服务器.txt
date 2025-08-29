@@ -54,7 +54,7 @@ node2   ip设置为192.168.10.103
 
 【创建快照ip init】
 
-3.apt源配置
+4.apt源配置
 mv /etc/apt/sources.list /etc/apt/sources.list.bak
 vi /etc/apt/sources.list
 
@@ -76,8 +76,10 @@ deb-src https://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted unive
 
 apt-get update
 
-添加k8s的apt仓库
-apt install -y ca-certificates apt-transport-https
+# 安装关联软件
+apt install -y ca-certificates apt-transport-https gnupg2 lsb-release software-properties-common
+
+# 添加k8s的apt仓库
 echo "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
 curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add
 cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d/
@@ -85,11 +87,27 @@ apt-get update
 
 【创建快照apt init】
 
-4.其他配置
+5.其他配置
 # 关闭 Swap（K8s 要求）
 swapoff -a
 # 永久关闭（注释 swap 行）
 sed -i '/swap/s/^/#/' /etc/fstab
 设置-电源-息屏-改为从不
 
+# 打开一些内核功能
+tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+modprobe overlay
+modprobe br_netfilter
+
+tee /etc/sysctl.d/k8s.conf<<EOF
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sysctl --system
 【创建快照all init】

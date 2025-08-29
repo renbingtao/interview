@@ -1,9 +1,5 @@
 
 ================================= 所有节点安装docker、kubeadm、kubelet、kubectl =================================
-
-安装部分组件
-apt install -y thin-provisioning-tools lvm2 ca-certificates gnupg lsb-release
-
 # 设置docker repo的位置
 install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -13,14 +9,6 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 # 安装docker组件
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io
-
-# 开启IPv4转发
-cat <<EOF | tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-iptables  = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.ipv4.ip_forward                 = 1
-EOF
-sysctl --system
 
 # 配置docker加速
 mkdir -p /etc/docker
