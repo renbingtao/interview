@@ -1,17 +1,41 @@
 
-基于vmware安装3台ubuntu
+1.基于vmware安装3台ubuntu 22.04
+稍后安装操作系统
+自定义硬件-桥接模式（不复制物理网络连接状态）
+CD/DVD选择ISO
+最小安装
 
-# 安装ssh
-apt update && apt install -y openssh-server vim
+2.安装常用软件
+apt-get update
+apt-get install -y openssh-server vim net-tools curl
+【创建快照init】
 
-配置静态IP
+3.配置静态IP
+方式1.界面操作
+设置-网络-有线-记录信息，比如
+IPv4地址：172.24.223.124
+默认路由：172.24.208.1
+DNS：172.24.208.1
+
+然后移除连接配置，有线+，IPv4 手动
+地址：172.24.223.101
+子网掩码：255.255.255.0
+网关：172.24.208.1
+DNS：172.24.208.1
+最后添加
+
+master：172.24.223.101
+node1：172.24.223.102
+node2：172.24.223.103
+
+方式2.命令行
 cd /etc/netplan
 cp 01-network-manager-all.yaml 01-network-manager-all.yaml.bak
 vi 01-network-manager-all.yaml
 修改如下
 network:
   version: 2
-  renderer: networkd
+  renderer: NetworkManager
   ethernets:
     ens33:
       dhcp4: no
@@ -28,18 +52,11 @@ master  ip设置为192.168.10.50
 node1   ip设置为192.168.10.102
 node2   ip设置为192.168.10.103
 
-验证网络
-在master中执行
-ping 192.168.10.102
-ping 192.168.10.103
+【创建快照ip init】
 
-# 关闭 Swap（K8s 要求）
-swapoff -a
-# 永久关闭（注释 swap 行）
-sed -i '/swap/s/^/#/' /etc/fstab
-
-apt配置源
-cp /etc/apt/sources.list /etc/apt/sources.list.bak
+3.apt源配置
+mv /etc/apt/sources.list /etc/apt/sources.list.bak
+vi /etc/apt/sources.list
 
 #添加阿里源
 deb https://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
@@ -60,11 +77,19 @@ deb-src https://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted unive
 apt-get update
 
 添加k8s的apt仓库
-apt install -y ca-certificates apt-transport-https curl
+apt install -y ca-certificates apt-transport-https
 echo "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
 curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add
+cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d/
 apt-get update
 
-如果出现 密钥存储在过时的 trusted.gpg 密钥环中（/etc/apt/trusted.gpg），请参见 apt-key(8) 的 DEPRECATION 一节以了解详情。
-则执行cd /etc/apt
-sudo cp trusted.gpg trusted.gpg.d/
+【创建快照apt init】
+
+4.其他配置
+# 关闭 Swap（K8s 要求）
+swapoff -a
+# 永久关闭（注释 swap 行）
+sed -i '/swap/s/^/#/' /etc/fstab
+设置-电源-息屏-改为从不
+
+【创建快照all init】
