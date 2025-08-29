@@ -109,4 +109,9 @@ net.ipv4.ip_forward                 = 1
 EOF
 
 sysctl --system
+
+更新/etc/hosts
+172.24.223.101  k8s-master
+172.24.223.102  k8s-node1
+172.24.223.103  k8s-node2
 【创建快照all init】

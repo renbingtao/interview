@@ -6,11 +6,13 @@ add-apt-repository -y "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/lin
 
 # 安装containerd
 apt-get update
-apt-get install -y containerd.io
+apt-get install -y containerd.io docker-ce docker-ce-cli
+systemctl restart docker
+systemctl enable docker
 
 # 配置containerd
 containerd config default | tee /etc/containerd/config.toml >/dev/null 2>&1
-sed -i 's/k8s.gcr.io/registry.aliyuncs.com\/google_containers/g' /etc/containerd/config.toml
+sed -i 's/k8s.gcr.io/registry.cn-hangzhou.aliyuncs.com\/google_containers/g' /etc/containerd/config.toml
 sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
 sed -i 's#sandbox_image = ".*"#sandbox_image = "registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8"#g' /etc/containerd/config.toml
 
@@ -25,7 +27,15 @@ systemctl start kubelet
 
 ================================= 部署master节点 =================================
 
-kubeadm init --apiserver-advertise-address=172.24.223.101 --image-repository=registry.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10 --control-plane-endpoint=k8s-master
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.25.10
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.9.3
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.6-0
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
+
+kubeadm init --apiserver-advertise-address=172.24.223.101 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10 --control-plane-endpoint=k8s-master
 
 # 若执行失败，重新执行init时，需要先执行下面的步骤
 # 清理残留旧组件
@@ -49,10 +59,11 @@ kubectl apply -f kube-flannel.yml
 如果希望回滚这个配置，则执行
 kubectl delete -f kube-flannel.yml
 
+systemctl restart containerd
+
 记录管理台输出的kubeadm join命令。如果清除了，可以再次生成
 kubeadm token create --print-join-command
 
-创建快照k8s master init
 ================================= node节点加入 =================================
 
 对node1和node2执行
