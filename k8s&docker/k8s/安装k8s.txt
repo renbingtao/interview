@@ -1,27 +1,21 @@
 
-================================= 所有节点安装docker、kubeadm、kubelet、kubectl =================================
-# 设置docker repo的位置
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+================================= 所有节点安装containerd、k8s组件 =================================
+安装docker仓库
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+add-apt-repository -y "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
 
-# 安装docker组件
+# 安装containerd
 apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io
+apt-get install -y containerd.io
 
-# 配置docker加速
-mkdir -p /etc/docker
-tee /etc/docker/daemon.json << EOF
-{
-    "registry-mirrors":["https://82m9ar63.mirror.aliyuncs.com"]
-}
-EOF
-systemctl daemon-reload
-systemctl restart docker
-systemctl enable docker
+# 配置containerd
+containerd config default | tee /etc/containerd/config.toml >/dev/null 2>&1
+sed -i 's/k8s.gcr.io/registry.aliyuncs.com\/google_containers/g' /etc/containerd/config.toml
+sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+sed -i 's#sandbox_image = ".*"#sandbox_image = "registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8"#g' /etc/containerd/config.toml
 
-创建快照 docker init
+systemctl restart containerd
+systemctl enable containerd
 
 安装kubeadm、kubelet、kubectl
 apt-get install -y kubelet=1.25.10-00 kubeadm=1.25.10-00 kubectl=1.25.10-00
@@ -29,45 +23,9 @@ apt-get install -y kubelet=1.25.10-00 kubeadm=1.25.10-00 kubectl=1.25.10-00
 systemctl enable kubelet
 systemctl start kubelet
 
-# 生成并修改 containerd 配置文件，不执行这一步会出现很多奇怪的bug
-containerd config default | tee /etc/containerd/config.toml
-
-vi /etc/containerd/config.toml
-修改内容
-[plugins."io.containerd.grpc.v1.cri"]
-将 sandbox_image 改成registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
-[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
-将 SystemdCgroup 改为true
-
-或
-sed -i 's#sandbox_image = ".*"#sandbox_image = "registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8"#g' /etc/containerd/config.toml
-sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
-
-
-#临时启用br_netfilter模块
-modprobe br_netfilter
-#永久启用br_netfilter模块
-vi /etc/modules-load.d/br_netfilter.conf
-内容为
-br_netfilter
-
-创建快照 k8s component init
-
 ================================= 部署master节点 =================================
-在master节点执行
-建议先提前拉取镜像
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.25.10
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.25.10
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.25.10
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.25.10
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.9.3
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.6-0
-docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
 
-验证
-docker images
-
-kubeadm init --apiserver-advertise-address=172.24.223.101 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10
+kubeadm init --apiserver-advertise-address=172.24.223.101 --image-repository=registry.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10 --control-plane-endpoint=k8s-master
 
 # 若执行失败，重新执行init时，需要先执行下面的步骤
 # 清理残留旧组件

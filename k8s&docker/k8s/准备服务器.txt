@@ -80,9 +80,8 @@ apt-get update
 apt install -y ca-certificates apt-transport-https gnupg2 lsb-release software-properties-common
 
 # 添加k8s的apt仓库
-echo "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
-curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add
-cp /etc/apt/trusted.gpg /etc/apt/trusted.gpg.d/
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+apt-add-repository -y "deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main"
 apt-get update
 
 【创建快照apt init】
