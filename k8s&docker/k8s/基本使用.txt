@@ -42,13 +42,22 @@ service有两种：ClusterIP和NodePort
 
 labels和selector
 资源关联机制，用于实现资源的绑定
-labels是附加在资源（pod，service等）上的kv，用于对资源分组。yaml中的写法类似于
+labels是附加在资源（pod，service等）上的kv，用于对资源分组。yaml示例
   labels:
     app: springboot-demo
-selector则根据labels来筛选。yaml中的写法类似于
+selector则根据labels来筛选。yaml示例
 spec:
   selector:
     app: springboot-demo
+
+DaemonSet
+作用是确保集群的每一个节点上都运行着一个相同的pod副本。DaemonSet能让pod覆盖集群所有节点，因此适合部署那些每个集群都要运行的pod服务，比如网络插件flannel、监控/日志收集组件等
+control-plane不会部署DaemonSet
+
+Ingress及Ingress Controller
+用来控制集群外部访问集群内部，避免了暴露NodePort，为服务提供了统一的入口
+Ingress是路由规则的定义，kind: Ingress，本身不运行任何程序，需要先部署Ingress Controller
+Ingress Controller是执行这些规则的程序，比如nginx，kind通常为DaemonSet
 
 ======================= k8s部署 =======================
 
@@ -63,10 +72,19 @@ kubectl expose deployment springboot-demo --type=NodePort --port=8081 --target-p
 # 查看springboot-demo暴漏的端口
 kubectl get svc springboot-demo -o jsonpath='{.spec.ports[0].nodePort}'
 
-# 外部访问（nodeport）
+# 外部访问（通过nodeport）
 curl http://172.24.223.103:30822/student/get
 
+# 集群内访问（ClusterIP）
+# 在宿主机访问
+curl http://10.100.45.210:8081/student/get
+# 在容器内访问
+curl http://springboot-demo:8081/student/get
+
 ======================= k8s常用操作 =======================
+
+# 进入容器
+kubectl exec -it <pod-name> -- /bin/bash
 
 # 查看全部资源 -o wide查看详细信息 -o yaml输出yaml格式
 kubectl get all -o wide

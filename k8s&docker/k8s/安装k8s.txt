@@ -34,6 +34,9 @@ docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:1.9.3
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.6-0
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.8
+# 安装ingress controller
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:v1.4.0
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-webhook-certgen:v1.5.1
 
 kubeadm init --apiserver-advertise-address=172.24.223.101 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --service-cidr=10.96.0.0/12 --pod-network-cidr=10.244.0.0/16 --kubernetes-version=v1.25.10 --control-plane-endpoint=k8s-master
 
@@ -63,6 +66,19 @@ systemctl restart containerd
 
 记录管理台输出的kubeadm join命令。如果清除了，可以再次生成
 kubeadm token create --print-join-command
+
+安装ingress controller
+上传deploy.yaml
+kubectl apply -f deploy.yaml
+执行后，ingress-nginx-admission-create和ingress-nginx-admission-patch的状态会变成Completed，这是一次性任务，属于正常
+
+部署Ingress
+apply myIngress.yaml
+kubectl get ingress 查看域名及ip端口：springboot.example.com   10.110.238.113   80
+3个节点更新/etc/hosts 新增以下内容
+10.110.238.113  springboot.example.com
+验证
+curl springboot.example.com/student/get
 
 ================================= node节点加入 =================================
 
