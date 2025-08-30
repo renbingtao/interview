@@ -1,0 +1,91 @@
+======================= 镜像准备 =======================
+
+编写Dockerfile
+FROM openjdk:latest
+LABEL maintainer="422511643@qq.com"
+ADD springboot-demo-0.0.1-SNAPSHOT.jar springboot.jar
+ENTRYPOINT ["java","-jar","springboot.jar"]
+EXPOSE 8081
+# 创建镜像
+docker build -t springboot:1.0 .
+# 运行镜像
+docker run -it -p 8081:8081 springboot:1.0
+# 验证
+curl http://127.0.0.1:8081/student/get
+# 查看镜像
+docker images
+# 导出镜像为 tar 文件
+docker save -o springboot.tar springboot:1.0
+# 所有节点导入镜像
+mkdir /local-repo
+chmod -R 777 /local-repo
+cd /local-repo
+# 这是docker的导入方式
+# docker load -i springboot.tar
+# 这是k8s 1.25的导入方式
+ctr -n=k8s.io images import /local-repo/springboot.tar
+
+======================= 基本概念 =======================
+
+pod是调度的最小单元。一个pod内可能有多个容器
+宿主机端口 -> pod端口 -> 容器端口
+
+deployment用于声明式管理ReplicaSet，ReplicaSet则用于管理pod
+通过kubectl edit deployment等方式修改deployment后，deployment会创建新的ReplicaSet，但旧的ReplicaSet不会被立即删除，保留为历史版本（默认最多保留10个），便于回滚
+
+service是统一应用的访问入口
+在k8s集群中，每个service都会被分配一个集群内部ip（CLUSTER-IP），集群内的其他pod可以通过CLUSTER-IP+端口来访问
+service可以组合多个pod，相当于是对pod的负载均衡
+service有两种：ClusterIP和NodePort
+如果service类型为ClusterIP，则端口无映射。比如 443/TCP
+如果service类型为NodePort，则后面多一个端口，映射为宿主机端口。比如 8081:30822/TCP
+
+labels和selector
+资源关联机制，用于实现资源的绑定
+labels是附加在资源（pod，service等）上的kv，用于对资源分组。yaml中的写法类似于
+  labels:
+    app: springboot-demo
+selector则根据labels来筛选。yaml中的写法类似于
+spec:
+  selector:
+    app: springboot-demo
+
+======================= k8s部署 =======================
+
+# 部署镜像 相当于docker run springboot-demo为pod的名字，springboot:1.0为镜像及版本
+# 会创建deployment，ReplicaSet，Pod
+kubectl create deployment springboot-demo --image=springboot:1.0
+
+# 为springboot-demo这个deployment创建一个service，名为springboot-demo，暴露随机端口给外部访问
+# --port=8081是pod端口，--target-port=8081是容器端口
+kubectl expose deployment springboot-demo --type=NodePort --port=8081 --target-port=8081
+
+# 查看springboot-demo暴漏的端口
+kubectl get svc springboot-demo -o jsonpath='{.spec.ports[0].nodePort}'
+
+# 外部访问（nodeport）
+curl http://172.24.223.103:30822/student/get
+
+======================= k8s常用操作 =======================
+
+# 查看全部资源 -o wide查看详细信息 -o yaml输出yaml格式
+kubectl get all -o wide
+
+# 查看全部service
+kubectl get svc -A
+
+# 删除deployment和svc
+kubectl delete deployment springboot-demo
+kubectl delete svc springboot-demo
+
+# 编辑部署 springboot-demo为创建部署时指定的名字
+kubectl edit deployment springboot-demo
+
+# 查看pod详细事件 springboot-demo-54b97bd988-zqcmd为pod名字
+kubectl describe pod springboot-demo-54b97bd988-zqcmd
+
+# 副本扩容为3个
+kubectl scale --replicas=3 deployment springboot-demo
+
+# 应用yaml文件
+kubectl apply -f xxx.yaml

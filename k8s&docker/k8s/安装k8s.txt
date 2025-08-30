@@ -1,6 +1,6 @@
 
 ================================= 所有节点安装containerd、k8s组件 =================================
-安装docker仓库
+安装docker的apt仓库
 curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
 add-apt-repository -y "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
 
