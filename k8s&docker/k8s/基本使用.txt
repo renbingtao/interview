@@ -66,7 +66,7 @@ Ingress Controller是执行这些规则的程序，比如nginx，kind通常为Da
 kubectl create deployment springboot-demo --image=springboot:1.0
 
 # 为springboot-demo这个deployment创建一个service，名为springboot-demo，暴露随机端口给外部访问
-# --port=8081是pod端口，--target-port=8081是容器端口
+# --port=8081是service端口，--target-port=8081是pod端口，需要和容器实际监听的端口保持一致
 kubectl expose deployment springboot-demo --type=NodePort --port=8081 --target-port=8081
 
 # 查看springboot-demo暴漏的端口
