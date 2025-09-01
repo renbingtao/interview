@@ -42,7 +42,7 @@ service有两种：ClusterIP和NodePort
 
 labels和selector
 资源关联机制，用于实现资源的绑定
-labels是附加在资源（pod，service等）上的kv，用于对资源分组。yaml示例
+labels是附加在资源（pod，service等）上的kv，用于对资源分组，通常用于k8s核心系统的调度或筛选。yaml示例
   labels:
     app: springboot-demo
 selector则根据labels来筛选。yaml示例
@@ -58,6 +58,19 @@ Ingress及Ingress Controller
 用来控制集群外部访问集群内部，避免了暴露NodePort，为服务提供了统一的入口
 Ingress是路由规则的定义，kind: Ingress，本身不运行任何程序，需要先部署Ingress Controller
 Ingress Controller是执行这些规则的程序，比如nginx，kind通常为DaemonSet
+
+annotations
+kv键值对，和labels类似，但主要给用户或第三方系统使用
+常见用途：记录资源的创建者、版本信息、部署时间、配置参数、JSON等
+
+managedFields
+记录不同实体对资源的修改历史，由k8s自动维护，是k8s跟踪资源变更的一种机制
+
+spec
+Specification （规格说明）的缩写，定义资源的期望状态，即希望资源达到某个状态。k8s的核心设计理念是声明式API
+常见属性：
+replicas: 1 1个副本
+template:   Pod模板，内部包含spec（pod期望状态）
 
 ======================= k8s部署 =======================
 
