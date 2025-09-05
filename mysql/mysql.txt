@@ -44,11 +44,11 @@ select for update/share，insert、update等，会加锁
 快照读
 select MVCC非阻塞式读
 
-每个事务在第一次读取任何数据时分配一个事物ID（增删改查，注意查也会生成）
+每个事务在第一次增删改查（注意包括查）任何数据时分配一个事物ID，即trx_id
 
 MVCC
 行级锁的变种，RC和RR生效，用于保证隔离性。由三部分组成：隐藏字段、undo版本链、readview
-隐藏字段：主要包括操作这条数据的事务id（trx_id，每个事务在第一次读取任何数据时分配一个事物ID（增删改查，注意查也会生成））和指向该数据前一个版本的指针（事务修改记录时，向undolog写入一条记录，记录如何恢复，事务的回滚指针指向该undolog）
+隐藏字段：主要包括操作这条数据的事务id（trx_id）和指向该数据前一个版本的指针（事务修改记录时，向undolog写入一条记录，记录如何恢复，事务的回滚指针指向该undolog）
 undolog版本链：同一条数据的不同版本组成的链条，在undo log中维护
 readview：用于控制具体选择哪个版本，包含：当前活跃的事务id集合、预分配事务id，即当前最大事务id+1，max_trx_id、最小活跃事务id，min_trx_id、readview创建者的事务id。
 在判断数据可见性时，从最新一条开始，根据数据访问规则检查该版本的数据是否可见，可见则返回，不可见则递归地查看上一版本。
@@ -85,7 +85,9 @@ AUTO_INCREMENT锁模式
 innodb_autoinc_lock_mode参数有以下几种值
 0，传统模式。在innodb_autoinc_lock_mode参数引入前，采用这种模式。在该模式下，所有"INSERT-like"语句都会获取一个特殊的表级锁（AUTO-INC lock），该锁会保持到语句的结束，而非事务的结束。对于给定的一系列插入sql，产生的自增值是可预测且重复的。在基于statement的复制模式中，副本产生的自增值和源服务器是相同的，多个insert执行的结果是确定的，副本的数据和源服务器保持一致。同时执行多个insert时，只能执行一个insert语句，其他语句都会阻塞，这也会限制并发插入时的性能
 1，连续模式，8.0之前的默认值。在该模式下，Bulk inserts使用AUTO-INC lock，直到sql结束。Simple inserts没有使用AUTO-INC lock，而是使用互斥锁（轻量级锁），互斥锁仅在生成自增值时获取，生成后释放，而非在语句结束时释放，但如果其他事务持有AUTO-INC lock，当前事务也会被阻塞。总的来说，这种模式显著提高了性能，且基于statement的复制仍然安全，但有一个例外，就是Mixed-mode inserts，在该情况下，innodb会分配比需要的行数更多的自增值，由于所有自动分配的值都是连续的，因此多余的值会被丢失
-2，交错模式，8.0之后的默认值。8.0修改了默认值，是因为binlog的默认格式由statement改为了row：statement模式下，需要采用连续的自增锁模式，以保证同样的sql能产生同样的自增值；row模式下则不受sql语句执行顺序的影响。在该模式下，任何INSERT-like都不会使用AUTO-INC lock，多个语句可以并发执行，性能最高，但基于statement的复制不安全。多个语句可以同时生成自增值，即自增值的分配是在多个语句之间可能是交错进行的。同理，Simple inserts生成的自增值是连续的，Bulk inserts生成的自增值可能不连续，innodb会分配一个范围，从这个范围内获取自增值，范围用完后，向innodb申请新的范围
+2，交错模式，8.0之后的默认值。8.0修改了默认值，是因为binlog的默认格式由statement改为了row：statement模式下，需要采用连续的自增锁模式，以保证同样的sql能产生同样的自增值；row模式下则不受sql语句执行顺序的影响
+在该模式下，任何INSERT-like都不会使用AUTO-INC lock，而是使用互斥锁。多个语句可以并发执行，性能最高，但基于statement的复制不安全
+多个语句可以同时生成自增值，即自增值的分配是在多个语句之间可能是交错进行的。同理，Simple inserts生成的自增值是连续的，Bulk inserts生成的自增值可能不连续，innodb会分配一个范围，从这个范围内获取自增值，范围用完后，向innodb申请新的范围
 
 自增计数器的更新规则
 当设置主键自增（AUTO_INCREMENT）时，其自增规则取决于当前自增计数器的值
@@ -176,7 +178,7 @@ VIRTUAL不会保存到磁盘，mysql会在使用时现场计算虚拟列的值�
 如何解决脏读、不可重复读、幻读
 脏读：RC级别解决，依赖readview，readview告诉事务应该看到哪个快照
 不可重复读：RR级别解决，使用MVCC解决，使用快照读取时，只会用第一次读时生成的readview
-幻读：RR级别种，基于MVCC+间隙锁，一定程度上解决，但没有完全避免，当一个事物发生当前读时，会发生幻读
+幻读：RR级别中，基于MVCC+间隙锁，一定程度上解决，但没有完全避免，当一个事物发生当前读时，会发生幻读
 
 binlog的三种模式
 statement：老版本默认的行为，记录SQL语句的原文，会导致主从不一致的问题
@@ -202,14 +204,17 @@ Two-Phase Locking，核心是将事务分为扩展阶段和收缩阶段，扩展
 
 mysql加什么锁
 select * from t1 where id = 10; 不加锁
-delete from t1 where id = 10;需要判断id是否为主键、唯一索引、普通索引，隔离级别等，加的都是X锁，下面省略
-RC下只能加record lock，下面省略
-RC/RR+主键：只在id=10的记录加record lock锁
-RC/RR+唯一索引：在索引及id=10的记录加record lock锁，共2个锁
-RC+普通索引：索引及满足条件的记录加锁，共2*n个锁
-RC+无索引：走聚簇索引，【所有记录】都被加上锁，然后返回给mysql server层，mysql server层做了优化，会把不符合where条件的数据的X锁提前释放，违反了2pl协议，最终结果是满足条件的数据加X锁，但不满足条件的数据的加锁、释放锁的过程是不可避免的。上述的优化叫做semi-consistent read，半一致性读，触发条件为RC或RR+设置innodb_locks_unsafe_for_binlog参数
-RR+普通索引：索引加record lock及gap lock，记录加record lock。若查询条件为where id=7，但只存在id=5和id=10的索引值，则把5-10的区间加gap锁；若存在id=7的值，也会把前后的区间（5-7和7-10）加上gap锁。若为范围查询，比如id>5，会把7-10及10-+无穷大的区间锁定
+select * from t1 where id = 10 for update; 加锁
+RC：
+只能加record lock。如果能查询到数据，则在索引及聚簇索引加record lock；如果查询不到数据则不加锁
+全表扫描时：走聚簇索引，【所有记录】都被加上锁，然后返回给mysql server层，mysql server层做了优化，会把不符合where条件的数据的X锁提前释放，违反了2pl协议（2段锁协议），最终结果是满足条件的数据加X锁，但不满足条件的数据的加锁、释放锁的过程是不可避免的。上述的优化叫做semi-consistent read，半一致性读，触发条件为RC或RR+设置innodb_locks_unsafe_for_binlog参数
+
+RR：
+id等值查询：id存在时聚簇索引加record lock；不存在时加gap lock
+唯一索引等值查询：数据存在时，唯一索引及聚簇索引加record lock；不存在时在唯一索引加gap锁，聚簇索引不加锁
+普通索引：索引加record lock及gap lock，记录加record lock。若存在a3、a4和a6的索引值，但查询条件为where a=a5，则把a4-a6的区间加gap锁；但查询条件为where a=a4，也会把前后的区间（a3-a4和a4-a6）加上gap锁。若为范围查询，比如a>a5，会把a4-a6和a6 - +无穷大加临键锁（LOCK MODE为X）
 RR+无索引：类似的，聚簇索引的全部记录加record lock，全部区间加gap lock，同理，若触发半一致性读，mysql会提前把不满足条件的record lock及全部gap lock提前释放
+
 总结，mysql的加锁原则为：
 1.加锁的基本单位为next-key lock，是前开后闭的区间
 2.查找过程中访问到的对象才会加锁（所以走覆盖索引不会给聚簇索引加锁）
@@ -332,11 +337,11 @@ range，索引的范围查询
 index，全索引扫描
 all，全表扫描
 extra：
-Using where，例如在没有建索引的字段上查询，说白了就是要回表
-Using index，例如覆盖索引
-Using index condition，例如索引下推
-Using where;Using index，覆盖索引+条件过滤。比如在a,b上建立索引，select a where b = xx （覆盖索引但不符合最左前缀）或者 select b where a > xx（覆盖索引但前导列是范围查询）
-Using filesort，使用文件排序而非索引排序
+Using where：服务器层在得到存储引擎层返回的数据后，再次根据where条件过滤。比如 1.全表扫描 2.索引（比如a）只覆盖了查询条件（where a=xx and b=xx）的一部分
+Using index：覆盖索引
+Using index condition：索引下推
+Using where;Using index，覆盖索引+条件过滤。比如在a,b上建立索引，select a where b = xx （覆盖索引但不符合最左前缀）此时type=index 或者 select b where a > xx （覆盖索引但前导列是范围查询）此时type=range
+Using filesort：使用文件排序而非索引排序
 
 是否支持emoji表情存储
 utf8mb4编码才支持；mysql的utf8实际为utf8mb3，是不支持的
