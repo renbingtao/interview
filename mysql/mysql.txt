@@ -211,12 +211,15 @@ RC：
 
 RR：
 id等值查询：id存在时聚簇索引加record lock；不存在时加gap lock
+id范围查询：如果id=1，3，5，select where id>5 ，只加临键锁
+select where id>=5，加id=5的记录锁和临键锁
+select where id>=4，(3,5]和(5,+无穷大]区间加临键锁
 唯一索引等值查询：数据存在时，唯一索引及聚簇索引加record lock；不存在时在唯一索引加gap锁，聚簇索引不加锁
-普通索引：索引加record lock及gap lock，记录加record lock。若存在a3、a4和a6的索引值，但查询条件为where a=a5，则把a4-a6的区间加gap锁；但查询条件为where a=a4，也会把前后的区间（a3-a4和a4-a6）加上gap锁。若为范围查询，比如a>a5，会把a4-a6和a6 - +无穷大加临键锁（LOCK MODE为X）
+普通索引：普通索引加record lock及gap lock，聚簇索引加record lock。若存在a3、a4和a6的索引值，但查询条件为where a=a5，则把a4-a6的区间加gap锁；但查询条件为where a=a4，会把(a3,a4]加临键锁，(a4,a6)加上gap锁。若为范围查询，比如a>a5，会把a4-a6和a6 - +无穷大加临键锁（LOCK MODE为X）
 RR+无索引：类似的，聚簇索引的全部记录加record lock，全部区间加gap lock，同理，若触发半一致性读，mysql会提前把不满足条件的record lock及全部gap lock提前释放
 
 总结，mysql的加锁原则为：
-1.加锁的基本单位为next-key lock，是前开后闭的区间
+1.加锁的基本单位为next-key lock，是前开后闭的区间（间隙锁是左开右开）
 2.查找过程中访问到的对象才会加锁（所以走覆盖索引不会给聚簇索引加锁）
 3.唯一索引等值查询时，有满足条件的数据时，退化为行锁
 4.索引等值查询，向右遍历且最后一个值不满足等值条件时，退化为间隙锁
@@ -270,7 +273,7 @@ innodb中的索引类型
 B+树和hash索引。B+树又分为聚簇索引和非聚簇索引
 
 唯一索引允许NULL值吗
-允许。NULL表示未知，两个未知的事务不代表它们相等，即每个NULL都被视为互不相同，NULL=NULL返回false，因此唯一所以索引包含多个NULL值。但是主键不能为NULL
+允许。NULL表示未知，两个未知的事务不代表它们相等，即每个NULL都被视为互不相同，NULL=NULL返回false，因此唯一索引可以包含多个NULL值。但是主键不能为NULL
 
 设计索引有哪些原则
 尽量选择区分度高的字段，但也不绝对，也要考虑数据倾斜

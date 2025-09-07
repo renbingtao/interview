@@ -51,7 +51,7 @@ service {
 }
 在全局事务的方法上加@GlobalTransactional注解
 
-seata的二阶段提交
+seata AT模式的二阶段提交
 注解注册全局事务，TM调用TC，生成XID，全局事务开始
 第一阶段：执行分支事务
     先查询前镜像（通过where查询修改前的数据），会获取本地锁

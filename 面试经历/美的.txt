@@ -1,0 +1,23 @@
+
+cpu使用率达到100%，如何排查代码问题
+top查看进程id，再top -Hp查看线程，再jstack查看特定线程的方法调用链，定位到具体的业务代码
+
+策略模式一般和哪种设计模式一起搭配使用
+工厂模式。应用启动时，工厂模式可以把接口的多个实现类都注入进来，策略模式就可以根据不同的type选择不同的策略
+策略模式一般要指定策略接口，有很多具体实现
+
+mysql b+树为什么范围查询快？它有什么特点
+
+explain的type有哪些内容
+eq_ref,ref,range,index,all
+
+extra中的using index condition、using filesort、using where是什么意思
+
+redis和db，在删除数据时，有短暂的不一致，要怎么处理
+
+spring bean的生命周期是怎样的
+读取xml或注解，生成bean definition；实例化；初始化（包括属性注入，动态代理，执行初始化方法）；就绪（可以使用）；销毁（执行销毁前的方法）
+
+kafka和rabbitmq相比，有什么优势劣势
+优势：吞吐量高，支持流处理，消息可以回溯
+劣势：不能保证可靠性
