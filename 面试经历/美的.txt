@@ -14,6 +14,7 @@ eq_ref,ref,range,index,all
 extra中的using index condition、using filesort、using where是什么意思
 
 redis和db，在删除数据时，有短暂的不一致，要怎么处理
+延迟双删，即先删缓存，再更新数据库，1-2秒后再删缓存。
 
 spring bean的生命周期是怎样的
 读取xml或注解，生成bean definition；实例化；初始化（包括属性注入，动态代理，执行初始化方法）；就绪（可以使用）；销毁（执行销毁前的方法）
