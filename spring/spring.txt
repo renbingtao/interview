@@ -168,6 +168,42 @@ spring使用了哪些设计模式
 底层依赖shutdown hook，是触发点
 触发后，执行bean的destroy方法、@PreDestroy
 
+如何自定义一个starter
+新建一个MyStarter工程，加入一个@Configuration类，声明各种bean。一般还要和@ConditionalOnXXX配合使用
+在src/main/resources下的META-INF/spring目录下，新建org.springframework.boot.autoconfigure.AutoConfiguration.imports配置文件，内容为Configuration类的全路径
+其他工程引入stater即可。上述是基于springboot 3实现的；2.7之前则配置文件为spring.factories；2.7-3.0两种都支持
+
+为何springboot 3.0开始移除了spring.factories
+为了支持云原生，为了提高启动速度。传统方式在运行时扫描并加载spring.factories，效率低。而3.0则是在编译时确定自动配置的类
+为何3.0可以编译器确定，2.7之前只能运行期确定
+2.7引入了@AutoConfiguration注解。imports配置文件下的@Configuration类，相当于添加了@AutoConfiguration注解。编译期间，spring会识别该注解，借助APT的方式实现生成代码
+什么是APT
+Annotation Processing Tool，java编译器的一个内置工具，可以在编译期间扫描和处理源代码中的注解，生成新的源文件或资源。比如Lombok的@Data注解
+
+spring事务在多线程环境下生效吗
+不。@Transactional注解使用ThreadLocal来保存事务的上下文
+
+如何在spring运行期间动态生成bean
+已定义DynamicService这个类，包含name和description两个属性。
+方式1：通过BeanDefinitionRegistry注册Bean
+BeanDefinition beanDefinition = BeanDefinitionBuilder
+                .genericBeanDefinition(DynamicService.class)
+                .addPropertyValue("name", name)
+                .addPropertyValue("description", description)
+                .setScope("singleton") // 单例模式
+                .getBeanDefinition();
+ConfigurableApplicationContext configurableContext = (ConfigurableApplicationContext) context;
+BeanDefinitionRegistry registry = (BeanDefinitionRegistry) configurableContext.getBeanFactory();
+registry.registerBeanDefinition(beanName, beanDefinition);
+
+方式2：通过FactoryBean动态创建Bean
+实现FactoryBean接口，实现getObject()方法（返回DynamicService对象）。代码：
+BeanDefinition factoryDef = BeanDefinitionBuilder
+        .genericBeanDefinition(DynamicServiceFactory.class)
+        .addConstructorArgValue(name)
+        .getBeanDefinition();
+registry.registerBeanDefinition("myFactoryBean", factoryDef);
+
 ========================mybatis========================
 
 #{}和${}的区别
