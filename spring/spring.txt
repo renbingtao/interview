@@ -164,6 +164,10 @@ spring使用了哪些设计模式
 观察者模式：各种Event和Listener
 责任链模式：spring拦截器
 
+优雅关闭
+底层依赖shutdown hook，是触发点
+触发后，执行bean的destroy方法、@PreDestroy
+
 ========================mybatis========================
 
 #{}和${}的区别

@@ -65,6 +65,16 @@ cas锁
 管道通信：管道的本质是一个共享pipe文件，是内存中固定大小的缓冲区
 进程的状态：ready、running、blocked、new、terminated。上面5种为线程活跃（alive）时的状态，此外还有挂起（suspend）和激活（active）两个原语用于控制进程。
 
+shutdown hook
+java允许在jvm关闭时执行一些操作（比如释放资源），代码类似于
+public static void main(String[] args) {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        System.out.println("释放资源");
+    }));
+}
+很多操作都会触发shutdown hook，比如：1.kill -15 2.代码正常执行完毕 3.System.exit(int status)
+kill -9不会触发shutdown hook
+
 ========================多线程及并发========================
 
 创建线程的方式
