@@ -181,7 +181,7 @@ spring使用了哪些设计模式
 Annotation Processing Tool，java编译器的一个内置工具，可以在编译期间扫描和处理源代码中的注解，生成新的源文件或资源。比如Lombok的@Data注解
 
 spring事务在多线程环境下生效吗
-不。@Transactional注解使用ThreadLocal来保存事务的上下文
+不。@Transactional注解使用ThreadLocal来保存事务上下文。事务传播也是依赖于当前线程的事务上下文
 
 如何在spring运行期间动态生成bean
 已定义DynamicService这个类，包含name和description两个属性。
