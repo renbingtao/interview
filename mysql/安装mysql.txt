@@ -20,3 +20,6 @@ select * from performance_schema.data_locks \G;
 
 查看死锁日志
 SHOW ENGINE INNODB STATUS;
+
+查看当前会话
+SHOW PROCESSLIST;
