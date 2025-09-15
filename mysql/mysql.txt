@@ -13,9 +13,6 @@
 不可重复度和幻读的区别
 比如查询某条数据，可重复读的结果都是一致的，即解决了不可重复度；但统计数据总数，两次统计之间有数据插入，则统计到的结果不同，即发生了幻读
 
-死锁
-多个事务在同一资源上相互占用并请求锁定对方占用的资源。innodb的处理方法是将持有最少行级排他锁的事务回滚。
-
 事务日志
 存储引擎修改表数据时修改内存中的拷贝，再把修改行为记录到硬盘的事务日志中，采用追加的方式，顺序IO。事务日志持久化后，内存修改的数据再慢慢刷回磁盘，也成为write ahead log，修改数据要写两次磁盘。
 
@@ -26,7 +23,9 @@ innodb可以在事物执行中随时锁定，只有提交或回滚时才会释�
 1.每个列不可再分割，比如“电话邮箱”列可继续分割，不符2.非主属性完全依赖于主键，而不是主键的一部分，比如主键为省+市，则省级单位只依赖于省而不依赖于市，不符3.非主属性不传递依赖于主键，比如A唯一确定B，B唯一确定C，ABC在同一张表中则不符。举例：市唯一确定省，省唯一确定国，则市、省、国放在同一张表内是不符的，因为国会冗余，应拆分为市省表+省国表
 
 锁
-mysql按排他性可分为读锁、写锁和意向锁，按粒度可分为表锁、记录锁（record lock）、间隙锁（gap lock）、临键锁（next-key lock）等。如果查询条件使用了唯一索引，则使用记录锁；使用普通索引，使用间隙锁，间隙锁唯一的作用是阻止其他事务向间隙中插入数据，即幻读，所以不区分共享或者排他，功能也是一致的；临键锁为记录锁和间隙锁的组合。可以在performance_schema.data_locks、show engine innodb status查看事务持有锁的情况
+mysql按排他性可分为读锁、写锁、意向写锁和意向读锁，按粒度可分为自增锁、元数据锁、表锁、记录锁（record lock）、间隙锁（gap lock）、临键锁（next-key lock）等
+间隙锁唯一的作用是阻止其他事务向间隙中插入数据，即幻读，所以不区分共享或者排他，功能也是一致的；临键锁为记录锁和间隙锁的组合
+可以在performance_schema.data_locks、show engine innodb status查看事务持有锁的情况
 
 读已提交时
 不需要防范幻读，所以gap锁不生效，则next-key lock也不生效。使用快照读，查询不到数据时只会加表级意向锁；查询到数据时在索引及主键上加记录锁REC_NOT_GAP
@@ -352,15 +351,6 @@ Using filesort：使用文件排序而非索引排序
 是否支持emoji表情存储
 utf8mb4编码才支持；mysql的utf8实际为utf8mb3，是不支持的
 
-死锁如何解决
-大多数现代数据库都有死锁检测机制，在发生死锁时自动干预，回滚一个或多个事务
-也可以手动干预，强制回滚事务
-
-避免死锁的方法
-减少锁的数量：将隔离级别从RR设置为RC，避免gap lock和next-key lock
-减少锁的时长：减少操作量
-固定顺序访问数据：事务在访问同一张表时，应该以相同的顺序获取锁
-
 MYSQL主从复制的过程
 1.从服务器开启主从复制后，会创建IO线程和SQL线程
 2.从服务器的IO线程，会和主服务器的binlog dump线程建立连接，做交互
@@ -471,12 +461,4 @@ limit是最后执行的（from，where，select，distinct，order by，limit）
 数据过滤后再join。比如select xx from (select xx from xx where xx) as xx on xx。把子查询的范围缩小
 使用内连接，即inner join
 8.0版本使用hash join，针对equal-join场景
-
-死锁案例
-RR隔离级别下，c字段建立唯一索引，值为c6和c8
-事务A：delete from test_table where c = 'c7';      //获得了gap锁
-事务B：delete from test_table where c = 'c8';      //获得了相同的gap锁
-事务A：insert into test_table(`id`,`a`,`b`,`c`) values ("7","a7","b7","c7");   //此时会阻塞，
-事务B：insert into test_table(`id`,`a`,`b`,`c`) values ("8","a8","b8","c8");   //此时会报错：Deadlock found when trying to get lock; try restarting transaction，随后回滚，事务A执行成功
-
 

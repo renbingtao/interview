@@ -1,0 +1,59 @@
+
+死锁
+多个事务在同一资源上相互占用并请求锁定对方占用的资源。innodb的处理方法是将持有最少行级排他锁的事务回滚。
+
+死锁如何解决
+大多数现代数据库都有死锁检测机制，在发生死锁时自动干预，回滚一个或多个事务
+也可以手动干预，强制回滚事务
+
+避免死锁的方法
+减少锁的数量：将隔离级别从RR设置为RC，避免gap lock和next-key lock
+减少锁的时长：减少操作量
+固定顺序访问数据：事务在访问同一张表时，应该以相同的顺序获取锁
+
+=============== 查看死锁 ===============
+查看死锁日志 SHOW ENGINE INNODB STATUS;
+其中LATEST DETECTED DEADLOCK为最近一次死锁信息，信息如下
+*** (1) TRANSACTION:
+TRANSACTION 1157960, ACTIVE 19 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 3 lock struct(s), heap size 1128, 2 row lock(s), undo log entries 1
+MySQL thread id 13, OS thread handle 129876393793088, query id 277 localhost root update
+insert into test_table(`id`,`a`,`b`,`c`) values ("7","a7","b7","c7")
+说明在执行insert into test_table(`id`,`a`,`b`,`c`) values ("7","a7","b7","c7")时出现了死锁。但该事务可能执行了其他sql，这里没有显示
+
+===== 持有锁的信息 =====
+*** (1) HOLDS THE LOCK(S):
+RECORD LOCKS space id 9 page no 6 n bits 80 index my_test2 of table `rbt_test`.`test_table` trx id 1157960 lock_mode X locks gap before rec
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 2; compact format; info bits 0
+ 0: len 2; hex 6339; asc c9;;
+ 1: len 4; hex 00000009; asc     ;;
+事务（id=1157960）持有rbt_test库的test_table表的my_test2索引的排他gap锁，区间为c9
+这里展示了事务持有的锁，但要确定是哪个锁导致的死锁
+
+===== 想要获取锁的信息 =====
+*** (1) WAITING FOR THIS LOCK TO BE GRANTED:
+RECORD LOCKS space id 9 page no 6 n bits 80 index my_test2 of table `rbt_test`.`test_table` trx id 1157960 lock_mode X locks gap before rec insert intention waiting
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 2; compact format; info bits 0
+ 0: len 2; hex 6339; asc c9;;
+ 1: len 4; hex 00000009; asc     ;;
+事务（id=1157960）持有rbt_test库的test_table表的my_test2索引的排他gap锁，区间为c9，等待insert intention锁（插入意向锁）
+
+另一个事务*** (2) TRANSACTION也是类似的
+
+===== 死锁处理 =====
+*** WE ROLL BACK TRANSACTION (2)
+回滚了事务2，无需人工干预
+
+=============== 死锁案例 ===============
+RR隔离级别下，c字段建立唯一索引，值为c6和c8
+事务A：delete from test_table where c = 'c7';      //获得了gap锁
+事务B：delete from test_table where c = 'c8';      //获得了相同的gap锁
+事务A：insert into test_table(`id`,`a`,`b`,`c`) values ("7","a7","b7","c7");   //此时会阻塞，
+事务B：insert into test_table(`id`,`a`,`b`,`c`) values ("8","a8","b8","c8");   //此时会报错：Deadlock found when trying to get lock; try restarting transaction，随后回滚，事务A执行成功
+
+执行delete会获取gap锁，但插入时要获取插入意向锁。如果要插入的数据所在的区间已经被gap锁住，则插入意向锁获取被阻塞（gap lock的作用就是防止插入）。并发执行时互相等待，产生死锁
+
+解决方案：
+设置为RC
+
