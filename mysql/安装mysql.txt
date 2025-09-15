@@ -5,3 +5,18 @@ sudo systemctl start mysql
 sudo systemctl enable mysql
 验证
 mysql
+
+================================== 常用操作 ==================================
+
+设置全局隔离级别
+SET GLOBAL transaction_isolation = 'READ-COMMITTED';
+SET GLOBAL transaction_isolation = 'REPEATABLE-READ';
+
+查看隔离级别
+SELECT @@session.transaction_isolation;
+
+查看锁情况
+select * from performance_schema.data_locks \G;
+
+查看死锁日志
+

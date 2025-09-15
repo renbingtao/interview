@@ -204,9 +204,10 @@ Two-Phase Locking，核心是将事务分为扩展阶段和收缩阶段，扩展
 
 mysql加什么锁
 select * from t1 where id = 10; 不加锁
-select * from t1 where id = 10 for update; 加锁
+select * from t1 where id = 10 for update; 加锁   下面的示例中的查询都默认为加锁的查询
 RC：
 只能加record lock。如果能查询到数据，则在索引及聚簇索引加record lock；如果查询不到数据则不加锁
+插入时，不会主动加锁（data_locks表查询不到记录锁），但会加隐式锁来避免并发问题（另一个事务也插入相同id的记录，则data_locks表能看到两条记录锁，一条GRANTED，另一条WAITING）
 全表扫描时：走聚簇索引，【所有记录】都被加上锁，然后返回给mysql server层，mysql server层做了优化，会把不符合where条件的数据的X锁提前释放，违反了2pl协议（2段锁协议），最终结果是满足条件的数据加X锁，但不满足条件的数据的加锁、释放锁的过程是不可避免的。上述的优化叫做semi-consistent read，半一致性读，触发条件为RC或RR+设置innodb_locks_unsafe_for_binlog参数
 
 RR：
@@ -214,7 +215,7 @@ id等值查询：id存在时聚簇索引加record lock；不存在时加gap lock
 id范围查询：如果id=1，3，5，select where id>5 ，只加临键锁
 select where id>=5，加id=5的记录锁和临键锁
 select where id>=4，(3,5]和(5,+无穷大]区间加临键锁
-唯一索引等值查询：数据存在时，唯一索引及聚簇索引加record lock；不存在时在唯一索引加gap锁，聚簇索引不加锁
+唯一索引等值查询及删除：数据存在时，唯一索引及聚簇索引加record lock；不存在时在唯一索引加gap锁，聚簇索引不加锁
 普通索引：普通索引加record lock及gap lock，聚簇索引加record lock。若存在a3、a4和a6的索引值，但查询条件为where a=a5，则把a4-a6的区间加gap锁；但查询条件为where a=a4，会把(a3,a4]加临键锁，(a4,a6)加上gap锁。若为范围查询，比如a>a5，会把a4-a6和a6 - +无穷大加临键锁（LOCK MODE为X）
 RR+无索引：类似的，聚簇索引的全部记录加record lock，全部区间加gap lock，同理，若触发半一致性读，mysql会提前把不满足条件的record lock及全部gap lock提前释放
 
@@ -224,6 +225,8 @@ RR+无索引：类似的，聚簇索引的全部记录加record lock，全部区
 3.唯一索引等值查询时，有满足条件的数据时，退化为行锁
 4.索引等值查询，向右遍历且最后一个值不满足等值条件时，退化为间隙锁
 5.存在bug：唯一索引的范围查询会访问到不满足条件的第一个值为止
+
+RC如果查询不到记录不加锁，但RR会加gap lock，有潜在的死锁风险
 
 为何很多公司把隔离级别设置为RC
 先搞清楚RR和RC的区别
@@ -468,4 +471,12 @@ limit是最后执行的（from，where，select，distinct，order by，limit）
 数据过滤后再join。比如select xx from (select xx from xx where xx) as xx on xx。把子查询的范围缩小
 使用内连接，即inner join
 8.0版本使用hash join，针对equal-join场景
+
+死锁案例
+RR隔离级别下，c字段建立唯一索引，值为c6和c8
+事务A：delete from test_table where c = 'c7';      //获得了gap锁
+事务B：delete from test_table where c = 'c8';      //获得了相同的gap锁
+事务A：insert into test_table(`id`,`a`,`b`,`c`) values ("7","a7","b7","c7");   //此时会阻塞，
+事务B：insert into test_table(`id`,`a`,`b`,`c`) values ("8","a8","b8","c8");   //此时会报错：Deadlock found when trying to get lock; try restarting transaction，随后回滚，事务A执行成功
+
 
