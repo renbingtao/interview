@@ -254,11 +254,14 @@ public class AppConfig {
 启动器，一站式解决依赖集合。传统的spring开发中，引入某个功能时，需要手动添加依赖并手动解决版本兼容问题，而使用starter只用添加一个starter依赖即可解决依赖及版本的问题
 springboot的官方启动器都是以spring-boot-starter-命名的。要构建一个简单的 Web 应用，添加spring-boot-starter-web依赖即可
 
-springboot配置加载顺序
-1.yaml先加载。properties后加载，覆盖yaml，因此properties的优先级比yaml高
-2.命令行参数
-3.操作系统环境变量
-例：命令行和yaml配置冲突，命令行的优先级更高
+springboot配置加载顺序，上面的被下面的覆盖
+@PropertySource注解指定的文件
+application.yml
+application.properties
+操作系统环境变量
+Java系统属性（System.getProperties()）
+命令行参数
+例：命令行和yml配置冲突，命令行的优先级更高
 
 为何springboot的jar可以直接运行
 springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
@@ -268,4 +271,7 @@ java -jar会读取manifest文件中的main class（这是jvm的规范）JarLaunc
 ApplicationRunner
 这是spring提供的一个类，在spring应用启动后执行特定的任务，且只会执行一次，可以做一些初始化操作，比如预热缓存，初始化db连接池
 
-
+@PropertySource注解的作用
+在类上加@PropertySource(value = "classpath:mytest.properties")，则该类下的属性会注入mytest.properties的值
+@PropertySource的优先级【低于】application.properties
+这种机制允许开发通过@PropertySource注解加载特定场景的配置
