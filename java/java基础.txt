@@ -120,29 +120,6 @@ threadLocalMap包含多个entry，Entry继承了WeakReference<ThreadLocal<?>>，
 线程池
 线程池的核心机制是对线程的复用，即一个线程执行完任务后，线程本身不会被销毁，则其内部的成员变量的值（比如ThreadLocalMap，子类的私有变量）会被保留，线程id也会保留，再次执行任务时，这些成员变量仍会保持上一次执行的状态
 
-AQS
-guc下的一个抽象类，采用模板方法模式，基于FIFO队列为锁和同步器提供了通用的框架。提供了排他锁和共享锁机制（没有提供公平、非公平锁机制，这点是由子类实现）。使用了volatile int类型的state变量记录锁竞争的状态，不同子类实现中有不同的含义。核心方法如下
-tryAcquire(int arg)及tryRelease(int arg)：由子类实现，用于快速获取（返回true/false）和释放排他锁，一般需要通过一次cas来实现
-tryAcquireShared(int arg)及tryReleaseShared(int arg)：同样由子类实现，用于快速获取/释放共享锁
-acquire(int arg)：由AQS实现，封装了获取失败后入队的通用流程 -> 不断重试，通过tryAcquire或tryAcquireShared获取锁，如果失败则封装成node节点（双向链表，FIFO，包含Thread属性）并插入到链表的末尾，通过LockSupport.park方法进行阻塞
-当子类调用锁相关的方法时（），会调用到acquire方法，再调用tryAcquire或tryAcquireShared
-
-ReentrantLock
-state=0表示没有线程竞争锁资源，>=1表示有线程持有锁
-内部定义了公平锁和非公平锁，都继承了aqs。区别是tryAcquire的实现不同：两者都会先判断state是否为0，为0时非公平锁通过cas抢锁；公平锁还会判断队列中是否有阻塞的线程，然后才cas抢锁
-
-Semaphore
-允许n个线程同时操作一个共享资源。第n+1个线程想要操作时会被阻塞
-state表示能同时操作的线程的数量，每当一个线程获得了操作的权限，则n-1。内部同样定义了公平和非公平锁：非公平锁的tryAcquireShared通过一次cas抢锁；公平锁的tryAcquireShared则是先判断是否有前驱节点，没有才cas
-
-CountDownLatch
-某个线程需要完成n个前置的条件后才能执行后面的动作
-state表示还需要完成的条件数。tryAcquireShared返回state==0，tryReleaseShared则通过循环调用cas保证state-1
-主要方法为await和countDown
-
-CyclicBarrier
-让一组线程互相等待，直到所有线程都到达某个 “屏障点”（Barrier Point）后，再一起继续执行
-
 ========================设计模式========================
 
 创建型模式：单例、原型、建造者、工厂
@@ -165,7 +142,7 @@ CyclicBarrier
 如名称，将请求的处理者连成一个链条，每个处理者可以自己处理请求，也可以交给下一个处理者。常见于审批流程
 
 策略
-定义一个策略接口，用来表示算法。有若干实现类。上下文根据客户端选择不同的策略，避免修改代码
+定义一个策略接口，用来表示算法。有若干实现类。上下文根据客户端选择不同的策略，避免修改代码。一般和工厂模式共同使用
 java中集合类的排序器Comparator就是策略模式，定义一个排序接口，由客户端自行实现，无需修改Comparator本身代码
 常用于支付方式选择、优惠券选择等
 

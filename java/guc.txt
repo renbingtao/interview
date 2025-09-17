@@ -1,17 +1,28 @@
 
-CyclicBarrier
-同步工具类，用于让一组线程相互等待，直到所有线程都到达某个共同的 “屏障点” 后，再一起继续执行。与CountDownLatch不同，它的计数器可以重复使用（即 “循环” 特性），适合需要多轮协作的场景
+AQS
+guc下的一个抽象类，采用模板方法模式，基于FIFO队列为锁和同步器提供了通用的框架。提供了排他锁和共享锁机制（没有提供公平、非公平锁机制，这点是由子类实现）。使用了volatile int类型的state变量记录锁竞争的状态，不同子类实现中有不同的含义。核心方法如下
+tryAcquire(int arg)及tryRelease(int arg)：由子类实现，用于快速获取（返回true/false）和释放排他锁，一般需要通过一次cas来实现
+tryAcquireShared(int arg)及tryReleaseShared(int arg)：同样由子类实现，用于快速获取/释放共享锁
+acquire(int arg)：由AQS实现，封装了获取失败后入队的通用流程 -> 不断重试，通过tryAcquire或tryAcquireShared获取锁，如果失败则封装成node节点（双向链表，FIFO，包含Thread属性）并插入到链表的末尾，通过LockSupport.park方法进行阻塞
+当子类调用锁相关的方法时（），会调用到acquire方法，再调用tryAcquire或tryAcquireShared
 
-CountDownLatch
-同步工具类，用于让一个或多个线程等待其他线程完成操作后再继续执行。它基于一个计数器实现，初始值为需要等待的操作数量，当计数器减为 0 时，被阻塞的线程会被唤醒
-CountDownLatch latch = new CountDownLatch(n); //a线程或多个线程执行需要满足n个条件
-latch.await(); // 在a线程中调用，则阻塞a线程，直到计数器为0
-latch.countDown(); //每当一个条件完成，计数器减1
+ReentrantLock
+state=0表示没有线程竞争锁资源，>=1表示有线程持有锁
+内部定义了公平锁和非公平锁，都继承了aqs。区别是tryAcquire的实现不同：两者都会先判断state是否为0，为0时非公平锁通过cas抢锁；公平锁还会判断队列中是否有阻塞的线程，然后才cas抢锁
 
 Semaphore
-流量控制工具，用于限制同时访问特定资源的线程数量。它通过维护一个许可证（permit）计数器，线程访问资源前必须先获取许可证，使用完毕后释放许可证，从而实现对并发线程数量的精准控制。
+允许n个线程同时操作一个共享资源。第n+1个线程想要操作时会被阻塞
+state表示能同时操作的线程的数量，每当一个线程获得了操作的权限，则n-1。内部同样定义了公平和非公平锁：非公平锁的tryAcquireShared通过一次cas抢锁；公平锁的tryAcquireShared则是先判断是否有前驱节点，没有才cas
 Semaphore semaphore = new Semaphore(5, true); //某个资源允许最多5个线程同时访问。true代表公平，即按请求的顺序获取许可
 semaphore.acquire(); //获取许可
 semaphore.release(); //释放许可
 
+CountDownLatch
+某个或多个线程需要完成n个前置的条件后才能执行后面的动作。一次性的
+state表示需要等待的操作数量。tryAcquireShared返回state==0，tryReleaseShared则通过循环调用cas保证state-1
+CountDownLatch latch = new CountDownLatch(n); //a线程或多个线程执行需要满足n个条件
+latch.await(); // 在a线程中调用，则阻塞a线程，直到计数器为0
+latch.countDown(); //每当一个条件完成，计数器减1
 
+CyclicBarrier
+让一组线程互相等待，直到所有线程都到达某个 “屏障点”（Barrier Point）后，再一起继续执行。与CountDownLatch不同，它的计数器可以重复使用（即 “循环” 特性）
