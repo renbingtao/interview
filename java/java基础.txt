@@ -138,6 +138,7 @@ state表示能同时操作的线程的数量，每当一个线程获得了操作
 CountDownLatch
 某个线程需要完成n个前置的条件后才能执行后面的动作
 state表示还需要完成的条件数。tryAcquireShared返回state==0，tryReleaseShared则通过循环调用cas保证state-1
+主要方法为await和countDown
 
 CyclicBarrier
 让一组线程互相等待，直到所有线程都到达某个 “屏障点”（Barrier Point）后，再一起继续执行
