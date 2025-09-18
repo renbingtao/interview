@@ -22,7 +22,7 @@ dicj：数组+链表。扩容时采用渐进式hash
 
 Set：intset（元素都是整数且size<512） -> dict
 
-Sorted Set：每个元素关联一个分数（score），支持按分数排序、范围查询。ziplist（value和分数<64k且size<128） -> skipList+dict
+Sorted Set：每个元素关联一个分数（score），支持按分数排序、按分数范围查询。ziplist（value和分数<64k且size<128） -> skipList+dict
 skipList：效率和红黑树/平衡树接近，但实现简单。跳跃表为一个链表，每个元素为跳跃表节点，包含：后退指针、分值（用来排序）、保存的值、数组类型的层（元素包含：前进指针、跨度）。层高为1-32之间随机
 
 Bitmap：SDS
