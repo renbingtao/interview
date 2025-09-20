@@ -72,7 +72,7 @@ B+ tree；自适应哈希索引，innodb发现某些索引值被频繁访问时�
 索引合并：一定程度上使用表的多个单列索引定位指定行，有三个变种：OR的联合，AND的相交，前两种的组合。以where a=xx or b=xx为例，explain的extra列中会显示Using union(idx_a,idx_b)；
 
 主键
-若没有定义主键，innodb会选择非空唯一索引来代替，若没有，会隐式定义一个主键
+若没有定义主键，innodb会选择非空唯一索引来代替，若没有，会隐式定义一个主键（DB_ROW_ID）
 何时不适合主键顺序插入：高并发场景，按主键顺序插入（手动指定主键）可能造成写入竞争，主键的上界成为热点，导致gap lock的竞争。注意这里不是主键自增
 
 AUTO_INCREMENT锁模式
@@ -121,6 +121,11 @@ TCC由一系列子事务组成，每个子事务都需要实现try-confirm-cance
 优缺点：并发程度高，不需要在数据库层面锁定资源。对业务有入侵性，需要实现三个接口并保证幂等
 
 最终一致性方案：适用于资源不需要回滚，只需要一致性的情景，比如数据清理。通过不断重试最终完成，实现弱一致性
+
+text和varchar的区别
+varchar有长度限制（65535字节）；text有多种：TINYTEXT，TEXT，MEDIUMTEXT，LONGTEXT等，长度可以很大
+varchar保存在数据行内部，可以直接获取；text保存在其他地方，行内只保存了一个指针，访问速度慢
+varchar可以直接建立索引；text建立索引必须指定前缀长度
 
 一条sql的执行过程
 1.使用连接器，通过客户端与mysql服务端建立连接，并校验权限
@@ -242,8 +247,9 @@ RC的bin log不支持statement的问题，可以换成row或mixed
 
 RR到底有没有解决幻读
 解决了大部分幻读，但没有解决全部。想要解决全部，只能用串行化
-问题举例1：事务1当前读，事务2新增数据并提交，事务1更新新增的数据，再快照读，可以读取到新的数据，前后不一致
+问题举例1：id=2的数据不存在。事务1当前读，事务2新增数据id=2并提交，事务1 update where id=2，可以读取到事务2新增的数据（update会隐式地当前读）。但如果执行update where id=1则不会读取到新增数据（无论id=1的数据是否存在）
 举例2：事务1当前读，事务2更新数据并提交，事务1当前读，前后不一致
+总结：RR下出现幻读的重要条件：事务1用到了快照读，事务2插入数据a并提交，事务1执行update的条件可以查询到数据a，则发生幻读
 
 乐观锁的实现
 一般通过CAS机制实现
@@ -335,19 +341,23 @@ a,b,c上建立索引
 例子2：where a > xx and b = xx。但mysql无绝对，如果大部分数据都满足a>xx，则可能会走全表扫描
 
 explain要查看哪些信息
-关键的包括：type，possible_keys，key，filtered（越小选择度越高），extra
-type：
+【type】
 eq_ref，唯一索引或主键等值查询
 ref，非唯一索引等值查询
 range，索引的范围查询
 index，全索引扫描
 all，全表扫描
-extra：
+【extra】
 Using where：服务器层在得到存储引擎层返回的数据后，再次根据where条件过滤。比如 1.全表扫描 2.索引（比如a）只覆盖了查询条件（where a=xx and b=xx）的一部分
 Using index：覆盖索引
 Using index condition：索引下推
 Using where;Using index，覆盖索引+条件过滤。比如在a,b上建立索引，select a where b = xx （覆盖索引但不符合最左前缀）此时type=index 或者 select b where a > xx （覆盖索引但前导列是范围查询）此时type=range
 Using filesort：使用文件排序而非索引排序
+【filtered】
+100*符合条件的记录数量/扫描的总记录数量，1-100之间，越小选择度越高，越好
+【rows】
+预估扫描的行数，如果type=all，则rows基本等于记录总数；如果type=range，则rows为预估的满足where条件的数量，没有索引覆盖时基本等于回表次数
+其他的还有possible_keys，key
 
 是否支持emoji表情存储
 utf8mb4编码才支持；mysql的utf8实际为utf8mb3，是不支持的
@@ -463,3 +473,7 @@ limit是最后执行的（from，where，select，distinct，order by，limit）
 使用内连接，即inner join
 8.0版本使用hash join，针对equal-join场景
 
+如何排名
+8.0以上，可以用下面的方法
+RANK() OVER (ORDER BY score DESC) 排名为1,1,3,4
+DENSE_RANK() OVER (ORDER BY score DESC) 排名为1,1,2,3

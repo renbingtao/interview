@@ -235,8 +235,7 @@ spring自动装配的原理
 1.@AutoConfigurationPackage
 这个注解的作用说白了就是将主配置类（@SpringBootApplication标注的类）所在包以及子包里面的所有组件扫描并加载到spring的容器中，这也就是为什么我们在利用springboot进行开发的时候，无论是Controller还是Service的路径都是与主配置类同级或者次级的原因
 2.@Import（AutoConfigurationImportSelector.class）
-这个注解就是将需要自动装配的类以全类名的方式返回，那是怎么找到哪些是需要自动装配的类呢？
-AutoConfigurationImportSelector这个类的方法一路调用下来，最终会查找所有在META-INF路径下的spring.factories文件，这些文件是k=v的形式，找到key=EnableAutoConfiguration的value（一个list）并返回，这些就是自动装配的配置类
+其中AutoConfigurationImportSelector实现了ImportSelector接口的selectImports方法，该方法一路调用下来，最终会查找所有在META-INF路径下的spring.factories文件，这些文件是k=v的形式，找到key=EnableAutoConfiguration的value（一个list）并返回，这些就是自动装配的配置类
 
 @Configuration是配置类的注解，作用类似于传统xml文件，可以在其中定义bean及其他配置。加了这个注解的类会生成cglib代理对象，这个类中加了@Bean的方法返回的是单例bean
 示例：
@@ -275,3 +274,17 @@ ApplicationRunner
 在类上加@PropertySource(value = "classpath:mytest.properties")，则该类下的属性会注入mytest.properties的值
 @PropertySource的优先级【低于】application.properties
 这种机制允许开发通过@PropertySource注解加载特定场景的配置
+
+@ConfigurationProperties的作用
+将配置文件中的属性值绑定到类的属性。比如配置文件 application.yml内容如下
+user:
+  name: "张三"
+  age: 25
+
+@ConfigurationProperties(prefix = "user") // 绑定前缀为 "user" 的配置
+@Data
+public class UserConfig {
+    private String name;
+    private Integer age;
+}
+
