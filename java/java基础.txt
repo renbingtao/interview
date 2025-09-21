@@ -137,6 +137,32 @@ iconst_1    将常量 1 压入操作数栈
 iadd        操作数栈顶的两个值相加
 putstatic
 
+ExecutorService的关闭
+shutdown：拒绝新任务，等待现有的任务执行完
+shutdownNow：停止现有的任务
+
+单机版定时任务如何实现
+1.基于java自带的timer/timerTask。使用简单，单线程执行（如果run方法执行很久，本来应该执行下一次任务了，会被阻塞）
+Timer timer = new Timer();
+timer.schedule(new TimerTask() {
+    @Override
+    public void run() {
+        System.out.println("Task executed at: " + new Date());
+    }
+}, 1000, 2000); // 延迟1s后执行，之后每2s执行一次
+2.基于java自带的ScheduledExecutorService，支持多个任务并发执行
+提供了schedule（一次性）、scheduleAtFixedRate、scheduleWithFixedDelay等主要方法
+比如间隔1s，任务执行4秒
+scheduleAtFixedRate每4秒执行一次，即按照上一个任务开始时间来计算下一个任务开始时间，【上一个任务结束后】才判断是否到了下一个任务的开始时间
+scheduleWithFixedDelay每5秒执行一次，按上一个任务的结束时间来计算
+3.spring框架的@Scheduled，如下
+@Scheduled(fixedRate = 2000)
+public void executeTask() {}
+支持多种配置方式：
+fixedRate：固定频率执行
+fixedDelay：固定延迟执行
+cron表达式：复杂时间调度
+
 ========================设计模式========================
 
 创建型模式：单例、原型、建造者、工厂

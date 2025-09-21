@@ -8,7 +8,7 @@ Resource不是spring的注解，spring只是支持。默认按照名称（加了
 
 依赖注入的几种方式
 比如有一个类A，有属性B，并提供了有参构造器
-1.构造器注入，即在A的有参构造器上添加@Auaowired注解，spring官方推荐的方式。特定是B为final时也可注入；A初始化初始化完成后即可使用；可检测循环依赖
+1.构造器注入，即在A的有参构造器上添加@Autowired注解，spring官方推荐的方式。特定是B为final时也可注入；A初始化初始化完成后即可使用；可检测循环依赖
 2.setter注入，即在setB方法上加注解。特定是B为final时无法注入；A初始化完成后B未注入，不能直接使用；可检测循环依赖
 3.属性注入，也是最常用的注入，直接在B上加注解。特点和上面一样
 
@@ -265,10 +265,10 @@ Java系统属性（System.getProperties()）
 为何springboot的jar可以直接运行
 springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
 打出来的是Fat jar，包含各种jar包
-java -jar会读取manifest文件中的main class（这是jvm的规范）JarLauncher，读取jar包并启动manifest中的start-class类
+java -jar会读取manifest文件中的main class（这是jvm的规范）的启动类JarLauncher，读取jar包并启动manifest中的start-class类
 
 ApplicationRunner
-这是spring提供的一个类，在spring应用启动后执行特定的任务，且只会执行一次，可以做一些初始化操作，比如预热缓存，初始化db连接池
+这是spring提供的一个类，在spring应用启动后执行特定的任务，且只会执行一次，可以做一些初始化操作，比如预热缓存，初始化db连接池。类似的还有CommandLineRunner
 
 @PropertySource注解的作用
 在类上加@PropertySource(value = "classpath:mytest.properties")，则该类下的属性会注入mytest.properties的值
@@ -287,4 +287,9 @@ public class UserConfig {
     private String name;
     private Integer age;
 }
+
+bean初始化时执行自定义方法，有几种方式实现
+1.@PostConstruct
+2.实现InitializingBean接口的afterPropertiesSet()方法
+3.@Bean(initMethod = "init") 在注解中指定initMethod方法，初始化时会执行init方法
 
