@@ -1,0 +1,16 @@
+sudo apt install redis-server
+验证
+redis-server --version
+
+进入客户端
+/usr/bin/redis-cli
+
+发布订阅
+客户端A订阅一个频道（成为消费者）
+subscribe rbt_channel
+客户端B发布消息
+publish rbt_channel 'hello_world'
+此时A的客户端会打印如下消息
+1) "message"
+2) "rbt_channel"
+3) "hello_world2"
