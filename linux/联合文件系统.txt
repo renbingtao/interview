@@ -1,0 +1,16 @@
+联合文件系统UnionFS，具体实现之一是OverlayFS，简称overlay
+把文件系统上多个目录的内容联合挂载到同一个目录下，使用者如容器看起来认为是一个目录，而实际在物理机上是由多个目录组成。OverlayFS使用两个目录，一个目录叠加在另一个目录之上，并对外提供单一视角
+overlay文件系统
+
+对外统一视图      merged（容器挂载层，容器看到的视角）
+上层             upperdir（容器层，可写）
+下层             lowerdir（镜像层，只读）
+
+修改只发生在upperdir层
+挂载命令
+mount -t overlay overlay -o lowerdir=/test/lower1:/test/lower2:/test/lower3,upperdir=/test/upperdir,workdir=/test/work /test/merged
+lowerdir指定只读层（可以多个），优先级从右到左，即lower3优先级最高
+upperdir为可写层，容器内的改动都会同步到这里
+workdir为工作目录，OverlayFS需要一个独立的目录来保存临时数据
+/test/merged为最终挂载点，即上层和下层合并后的视图
+如果上层和下层有同名文件，则上层会“遮盖”下层
