@@ -116,9 +116,10 @@ docker container start name
 
 
 重启策略 docker run --restart always
-always：除非容器被明确停止，比如docker container stop，否则会一直尝试重启处于停止状态的容器，比如通过exit杀死的容器会重启。docker daemon重启时，always且stop状态的容器也会重启
-unless-stopped：和上面的区别时，docker daemon重启时，unless-stopped且stop状态的容器不会重启
-on-failure：退出容器且返回值不是0时重启容器。docker daemon重启时，on-failure且stop状态的容器也会重启
+no：默认，不自动重启，容器退出后完全不重启
+always：除非容器被明确停止，比如docker container stop，否则会一直尝试重启处于停止状态的容器。通过stop命令停止某个容器，docker daemon重启时，该容器也【会】重启
+unless-stopped：和上面类似，区别在于，通过stop命令停止某个容器，docker daemon重启时，该容器【不会】重启
+on-failure：退出容器且返回值不是0时重启容器。docker daemon重启时，停止状态的容器也会重启
 
 
 ================================应用的容器化================================
