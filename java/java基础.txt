@@ -17,7 +17,25 @@ try catch finally及return的执行顺序
 先执行try或catch，在return前保存结果，执行finally，再返回之前保存的结果（基本数据类型是保存值，对象则保存引用）。但若finally中return，则不会返回之前保存的记过
 
 IO流
-可分为输入流和输出流，也可分为字符流和字节流。
+可分为输入流和输出流，也可分为字符流和字节流
+字节流：（以字节为单位，8 位，可处理所有数据）
+    基类：InputStream，OutputStream
+    常用子类（节点流：直接操作数据源）：
+        FileInputStream / FileOutputStream：读写文件的字节流
+        ByteArrayInputStream / ByteArrayOutputStream：读写内存中字节数组的流
+        PipedInputStream / PipedOutputStream：管道字节流，用于多线程间通信
+    常用处理流（包装节点流，增强功能）
+        BufferedInputStream / BufferedOutputStream：缓冲字节流
+        PrintStream：打印字节流，方便输出各种数据类型（如print()、println()），System.out就是PrintStream实例
+字符流（以字符为单位，16 位，仅处理文本数据，涉及编码）
+    基类：Reader，Writer
+    常用子类（节点流）
+    FileReader / FileWriter：读写文件的字符流
+    CharArrayReader / CharArrayWriter：读写内存中字符数组的流
+    StringReader / StringWriter：读写字符串的字符流
+    BufferedReader / BufferedWriter：缓冲字符流，提高文本读写效率，BufferedReader提供readLine()方法
+    InputStreamReader / OutputStreamWriter：转换流（字节流→字符流的桥梁），可指定编码（如UTF-8）
+    PrintWriter：打印字符流，功能类似PrintStream，但更适合处理文本，支持指定编码
 
 Object常用的方法
 wait，配置sync关键字，一个线程在获取锁后，执行wait方法会手动释放锁，等待其他线程唤醒它。notify，配合sync关键字，唤醒wait的某个线程（但此时没有释放锁，只是通知其他线程可以抢锁了）。notifyall，唤醒全部线程。
