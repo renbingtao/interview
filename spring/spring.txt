@@ -293,3 +293,8 @@ bean初始化时执行自定义方法，有几种方式实现
 2.实现InitializingBean接口的afterPropertiesSet()方法
 3.@Bean(initMethod = "init") 在注解中指定initMethod方法，初始化时会执行init方法
 
+spring为何不推荐使用@Autowired
+1.如果字段是final，则无法注入（使用构造器可以解决）
+2.隐藏了依赖关系，类应该公开它的依赖项
+3.@Autowired可以解决循环依赖，但spring不希望开发依赖框架解决，而是重构代码解决循环依赖
+推荐使用构造器和setter方法
