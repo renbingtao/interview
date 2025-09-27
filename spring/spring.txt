@@ -1,10 +1,21 @@
 
-========================spring========================
-
 Autowired和Resource注解的区别
 两者都是用来做bean的注入
 Autowired默认按类型注入，若有多个类型则根据名称查找（也可以手动指定名称@Qualifier）
 Resource不是spring的注解，spring只是支持。默认按照名称（加了注解的变量的名称）注入，名称找不到时按类型注入
+
+@Component和@Bean的区别
+@Component      写在类上                                一般用在自己写的类上                           无法控制创建过程
+@Bean           写在方法上，一般和@Configuration配合      一般用在第三方库中的类（因为无法修改源代码       可以在方法中new对象，控制创建过程
+总结：@Component适合简单、自己写的类，而@Bean适合需要更多控制的场景
+
+BeanFactory和FactoryBean的区别
+BeanFactory是工厂，是spring核心的bean接口，定义了管理bean的方法，比如getBean
+FactoryBean是bean，是一个接口，需要实现getObject方法，作用是自定义bean的创建过程，适用于创建复杂bean的场景。如MyBatis 中的SqlSessionFactoryBean就是FactoryBean的典型实现
+BeanFactory.get("MyFactoryBean")返回的是MyFactoryBean的getObject返回的对象，如果要返回MyFactoryBean本身，则需要调用BeanFactory.get("&MyFactoryBean")
+
+ApplicationContext和BeanFactory的区别
+两者都是用于管理bean，BeanFactory是最基础的bean接口，定义了管理bean的方法，比如getBean。ApplicationContext继承了BeanFactory，实现了更多接口以提供更多功能，如MessageSource（国际化），ResourceLoader（资源加载），ApplicationEventPublisher（事件发布）
 
 依赖注入的几种方式
 比如有一个类A，有属性B，并提供了有参构造器
@@ -77,8 +88,7 @@ spring bean的生命周期
 spring bean的作用域
 单例，默认；原型，为每个请求创建一个实例；request，为每个网路请求创建一个实例；session，保证每个session中有一个实例；global-session
 
-ApplicationContext和BeanFactory的区别
-两者都是用于管理bean，BeanFactory是最基础的bean接口，定义了管理bean的方法，比如getBean。ApplicationContext继承了BeanFactory，实现了更多接口以提供更多功能，如MessageSource（国际化），ResourceLoader（资源加载），ApplicationEventPublisher（事件发布）
+
 
 单例bean是线程安全的吗
 spring本身没有对单例bean做任何多线程的封装处理，线程安全问题是开发人员要考虑的，spring不关心
@@ -112,22 +122,6 @@ spring实例化A，并把A的工厂对象放入三级缓存中
 
 理论上，在实例化阶段检查是否需要代理，也可以只需要二级缓存，但会违反单一职责的思想 --> 实例化应只做实例化应做的事，不应考虑代理的事
 
-spring事务传播机制
-一个spring事务执行中遇到了另一个spring事务，要如何处理事务间的关系。开启spring事务的时机：@Transactional注解被外部调用时，走proxy的增强方法，因此spring可以开启事务
-方法自调用：举例controller->Aservice.a()->Aservice.b()。ab方法都有@Trancational注解，但自始至终都只有一个事物(a方法被调用时开启的)，因此不存在事务传播，b方法加不加注解效果都是一样的。b方法没有开启事务，是因为a调b时，是被代理类调用，因此不会走增强方法
-
-spring事务传播的级别
-required：默认，若当前存在事务则加入，不存在则新建
-requireNew：无论当前事务是否存在，都新建事务，新老隔离
-nested：若存在当前事务，则嵌套，否则新建
-数据库一般都支持保存点（savePoint），允许在事务中设置一个标志点，回滚时只回滚到这个标志点而不是整个事务
-spring的嵌套就是基于此实现的，开启嵌套事务时，在父事务中创建保存点，回滚时只回滚到这个保存点，不影响父事务之前的操作，但若父事务回滚，则子事务也会回滚
-其他的不列出来了，一般都使用默认的级别
-
-spring事务的实现方式
-声明式事务：传统的事务实现中，需要手动地开启、提交、回滚。而spring声明式事务允许开发者通过声明的方式来定义事务，不需要手动编写代码来管理事务。具体实现是基于AOP，使用方式是XML或注解@Transactional
-编程式事务：开发在业务代码中手动调用提交、回滚等操作。相比于声明式事务，更加灵活，但也更加难以维护
-
 spring启动流程
 创建SpringApplication实例
     检查是否为web应用
@@ -156,7 +150,6 @@ spring启动流程
 
 此外整个过程中会发布各种事件
 
-
 spring使用了哪些设计模式
 简单工厂模式：BeanFactory
 工厂方法模式：FactoryBean
@@ -168,20 +161,12 @@ spring使用了哪些设计模式
 底层依赖shutdown hook，是触发点
 触发后，执行bean的destroy方法、@PreDestroy
 
-如何自定义一个starter
-新建一个MyStarter工程，加入一个@Configuration类，声明各种bean。一般还要和@ConditionalOnXXX配合使用
-在src/main/resources下的META-INF/spring目录下，新建org.springframework.boot.autoconfigure.AutoConfiguration.imports配置文件，内容为Configuration类的全路径
-其他工程引入stater即可。上述是基于springboot 3实现的；2.7之前则配置文件为spring.factories；2.7-3.0两种都支持
-
 为何springboot 3.0开始移除了spring.factories
 为了支持云原生，为了提高启动速度。传统方式在运行时扫描并加载spring.factories，效率低。而3.0则是在编译时确定自动配置的类
 为何3.0可以编译器确定，2.7之前只能运行期确定
 2.7引入了@AutoConfiguration注解。imports配置文件下的@Configuration类，相当于添加了@AutoConfiguration注解。编译期间，spring会识别该注解，借助APT的方式实现生成代码
 什么是APT
 Annotation Processing Tool，java编译器的一个内置工具，可以在编译期间扫描和处理源代码中的注解，生成新的源文件或资源。比如Lombok的@Data注解
-
-spring事务在多线程环境下生效吗
-不。@Transactional注解使用ThreadLocal来保存事务上下文。事务传播也是依赖于当前线程的事务上下文
 
 如何在spring运行期间动态生成bean
 已定义DynamicService这个类，包含name和description两个属性。
@@ -204,39 +189,6 @@ BeanDefinition factoryDef = BeanDefinitionBuilder
         .getBeanDefinition();
 registry.registerBeanDefinition("myFactoryBean", factoryDef);
 
-========================mybatis========================
-
-#{}和${}的区别
-#{}是预编译处理，可以防止sql注入，${}是字符串替换
-
-缓存机制
-一级缓存（也叫localCache、本地缓存）
-一级缓存的生命周期和sqlsession一致，在同一个sqlsession中，执行相同的查询，先查缓存，查不到则查db并缓存。不同的sqlsession不共享
-sqlsession内包含一个executor，executor内有一个LocalCache
-
-二级缓存
-如果多个sqlsession之间需要共享缓存，则使用二级缓存。开启二级缓存后，在查询一级缓存前先查询二级缓存
-
-mapper是接口没有实现类，为何还可以调用
-mybatis使用jdk动态代理生成代理对象（根据xml），调用时实际是调用的代理对象的方法
-
-========================spring boot========================
-
-springboot不需要独立的容器也能运行，因为内嵌了各种servlet容器如tomcat，不再需要打成war包，只需要打成jar包就能独立运行
-
-springboot的核心注解是哪个
-启动类上面的注解是@SpringBootApplication，它也是 Spring Boot的核心注解，它包含下列注解
-@SpringBootConfiguration：继承自 @Configuration 注解，用于标记当前类是一个配置类
-@EnableAutoConfiguration：自动配置的核心注解
-@ComponentScan
-
-spring自动装配的原理
-核心是@EnableAutoConfiguration，里面包含了两个注解：
-1.@AutoConfigurationPackage
-这个注解的作用说白了就是将主配置类（@SpringBootApplication标注的类）所在包以及子包里面的所有组件扫描并加载到spring的容器中，这也就是为什么我们在利用springboot进行开发的时候，无论是Controller还是Service的路径都是与主配置类同级或者次级的原因
-2.@Import（AutoConfigurationImportSelector.class）
-其中AutoConfigurationImportSelector实现了ImportSelector接口的selectImports方法，该方法一路调用下来，最终会查找所有在META-INF路径下的spring.factories文件，这些文件是k=v的形式，找到key=EnableAutoConfiguration的value（一个list）并返回，这些就是自动装配的配置类
-
 @Configuration是配置类的注解，作用类似于传统xml文件，可以在其中定义bean及其他配置。加了这个注解的类会生成cglib代理对象，这个类中加了@Bean的方法返回的是单例bean
 示例：
 @Configuration
@@ -248,24 +200,6 @@ public class AppConfig {
 }
 调用myService()方法时，myRepository()返回的是单例bean，而不会新建一个bean
 如果把@Configuration换成@Component，则不会生成cglib代理对象而是原始对象，调用myService()方法时会创建新的MyRepository对象
-
-如何理解starter
-启动器，一站式解决依赖集合。传统的spring开发中，引入某个功能时，需要手动添加依赖并手动解决版本兼容问题，而使用starter只用添加一个starter依赖即可解决依赖及版本的问题
-springboot的官方启动器都是以spring-boot-starter-命名的。要构建一个简单的 Web 应用，添加spring-boot-starter-web依赖即可
-
-springboot配置加载顺序，上面的被下面的覆盖
-@PropertySource注解指定的文件
-application.yml
-application.properties
-操作系统环境变量
-Java系统属性（System.getProperties()）
-命令行参数
-例：命令行和yml配置冲突，命令行的优先级更高
-
-为何springboot的jar可以直接运行
-springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
-打出来的是Fat jar，包含各种jar包
-java -jar会读取manifest文件中的main class（这是jvm的规范）的启动类JarLauncher，读取jar包并启动manifest中的start-class类
 
 ApplicationRunner
 这是spring提供的一个类，在spring应用启动后执行特定的任务，且只会执行一次，可以做一些初始化操作，比如预热缓存，初始化db连接池。类似的还有CommandLineRunner

@@ -1,0 +1,77 @@
+
+创建线程的方式
+继承Thread并重写run方法
+实现Runnable接口并作为参数传给thread
+实现Callable接口并作为参数传给FutureTask，再把FutureTask传递给thread
+线程池创建任务实现Runnable或Callable
+
+线程池的生命周期
+创建：没有任务运行
+运行：任务提交到线程池
+关闭：不再接收新任务，但已有的任务继续执行（包括阻塞队列中的任务）
+终止：所有任务执行完毕
+
+如何停止一个正在运行的线程
+使用自定义的标识，即正常退出；stop强行停止，已废弃；interrupt，设置标志位，线程并不会立即停止，而是在合适的时机检查标志位
+
+java线程池中常用的队列有哪些
+下面三个都是guc下的
+ArrayBlockingQueue，基于数组的有界阻塞队列，FIFO，创建时指定大小，线程安全，通过add（抛异常）、offer（返回false）、put（线程被阻塞直到有空位）方法插入元素，括号内为队列满时的处理方式；通过poll（返回null）、take（线程等待）获取并移除头部的元素
+LinkedBlockingQueue，基于链表的有界或可选无界的阻塞队列，FIFO，不指定容量时为整数最大值
+SynchronousQueue，特殊的队列，容量为0，元素直接从生产者给消费者，无缓冲。Executors.newCachedThreadPool()内部就使用了该队列，适合大量短期异步任务，潜在问题是允许创建的线程无上线，可能耗尽系统资源。应用场景：线程之间直接传递数据，没有延迟
+
+threadLocal
+threadLocalMap包含多个entry，Entry继承了WeakReference<ThreadLocal<?>>，构造方法为Entry(ThreadLocal<?> k, Object v) {super(k);value = v;}。注意这里的super(k)调用了WeakReference的构造函数，使得key为弱引用。value则是强引用
+使用弱引用的原因：若使用强引用，threadLocal对象的引用设置为null时，threadLocalMap仍指向了threadLocal对象，导致不会回收，使用弱引用则会正常回收
+内存泄露的条件：1.threadlocal对象被回收（比如没有使用static修饰，在非静态方法内部创建，方法执行完毕后被jvm回收） 2.value没有被手动清理 3.线程长期存活
+内存泄露的原因：threadlocal对象被回收后，map的key为null，但WeakReference仍存在，则value也存在，生命周期和线程一致。所以使用完threadLocal后，要调用remove清除键值对。另外线程可能复用，若不清除，线程下次复用时，threadLocal仍保存之前的值，导致混乱
+
+线程池
+线程池的核心机制是对线程的复用，即一个线程执行完任务后，线程本身不会被销毁，则其内部的成员变量的值（比如ThreadLocalMap，子类的私有变量）会被保留，线程id也会保留，再次执行任务时，这些成员变量仍会保持上一次执行的状态
+
+int i =0;i++执行的过程
+//这两步对应i=0
+ICONST_0    将常量 0 压入操作数栈
+ISTORE 1    将操作数栈顶的 0 存入局部变量表索引 1 的位置（即变量 i）
+//这一步对应i++
+IINC 1 1    对局部变量表索引 1 的变量 i 执行自增操作（增量为 1）
+
+i++的过程
+如果i是局部变量，则jvm会优化成
+iload   将i的值压入操作数栈顶
+iinc    递增变量的值
+如果i是静态字段，则过程如下
+getstatic   把i的值压入操作数栈顶
+iconst_1    将常量 1 压入操作数栈
+iadd        操作数栈顶的两个值相加
+putstatic
+
+ExecutorService的关闭
+shutdown：拒绝新任务，等待现有的任务执行完
+shutdownNow：停止现有的任务
+
+concurrentHashMap原理
+java8之前，分段锁，分成16个段，每个段内部是一个小的hashmap，对段操作时需要先获取锁，因此并发最多为16
+8及之后采用cas+synchronized关键字
+get方法：
+调用spread方法重新计算hash值，原hash异或（00/11=1，01/10=0）原hash右移16位，再与0x7fffffff（二进制为01111111等）与运算来保证hash值为正数，因为hash为负数有特殊的作用（表示这个node为红黑树）
+计算下标，但不是通过table[i]获取，而是通过Unsafe类的方法getObjectVolatile来获取最新的值（数组为volatile Node<K,V> table，volatile并不能保证数据内的元素的修改可见性。此外一个不加volatile关键字的数据，也可以通过Unsafe的这个方法获取最新值）
+比较头结点的key及hash，即数据元素的第一个值，相同则返回
+若头结点的hash<0，则代表node为红黑树（TreeBin为Node的子类，重写了find方法及其他对红黑树的操作方法，红黑树的节点为TreeNode类），调用find方法获取值
+按照链表的方式遍历（node为单向）
+put方法：
+内部是一个死循环，方法内大量if elseif elseif else
+if：数组为空，则初始化
+elseif：头节点为空，新建node并通过cas替换，替换成功则退出循环
+elseif:头节点的hash=-1，则说明正在扩容中，将旧的头节点替换为新的头结点
+else:获取sync锁（锁为头节点），头节点hash>=0时，进入子循环：比较hash及key，相等则替换val，不等则继续比较下一个，为空则新建node，直到退出子循环。每循环一次，binCount（默认0的int）都会++
+                            头节点为红黑树时，调用红黑树的方法插入
+                            释放sync锁，检查若binCount>=8，则转为TreeBin。若有旧值，则返回旧值
+ifelse已结束，且没有旧值，更新map的总数，检查是否需要扩容，最后返回null
+
+cas锁
+比较并交换值，这是一个系统底层的原子方法，不可分割的
+
+并发与并行
+并发：单核处理器在多个程序之间快速切换
+并行：同一时刻多个任务同时执行，需要多核处理器

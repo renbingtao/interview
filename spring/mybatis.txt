@@ -1,0 +1,13 @@
+#{}和${}的区别
+#{}是预编译处理，可以防止sql注入，${}是字符串替换
+
+缓存机制
+一级缓存（也叫localCache、本地缓存）
+一级缓存的生命周期和sqlsession一致，在同一个sqlsession中，执行相同的查询，先查缓存，查不到则查db并缓存。不同的sqlsession不共享
+sqlsession内包含一个executor，executor内有一个LocalCache
+
+二级缓存
+如果多个sqlsession之间需要共享缓存，则使用二级缓存。开启二级缓存后，在查询一级缓存前先查询二级缓存
+
+mapper是接口没有实现类，为何还可以调用
+mybatis使用jdk动态代理生成代理对象（根据xml），调用时实际是调用的代理对象的方法
