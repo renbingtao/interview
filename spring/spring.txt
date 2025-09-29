@@ -11,11 +11,21 @@ Resource不是spring的注解，spring只是支持。默认按照名称（加了
 
 BeanFactory和FactoryBean的区别
 BeanFactory是工厂，是spring核心的bean接口，定义了管理bean的方法，比如getBean
-FactoryBean是bean，是一个接口，需要实现getObject方法，作用是自定义bean的创建过程，适用于创建复杂bean的场景。如MyBatis 中的SqlSessionFactoryBean就是FactoryBean的典型实现
+FactoryBean是bean，是一个需要实现getObject方法的接口，作用是自定义bean的创建过程，适用于创建复杂bean的场景。如MyBatis中的SqlSessionFactoryBean就是FactoryBean的典型实现，返回SqlSessionFactory
 BeanFactory.get("MyFactoryBean")返回的是MyFactoryBean的getObject返回的对象，如果要返回MyFactoryBean本身，则需要调用BeanFactory.get("&MyFactoryBean")
 
 ApplicationContext和BeanFactory的区别
 两者都是用于管理bean，BeanFactory是最基础的bean接口，定义了管理bean的方法，比如getBean。ApplicationContext继承了BeanFactory，实现了更多接口以提供更多功能，如MessageSource（国际化），ResourceLoader（资源加载），ApplicationEventPublisher（事件发布）
+
+bean的创建顺序如何控制
+比如A依赖B，但如果A先加载，B后加载，则有问题
+方案1.可以在A类的注解上添加@DependsOn("serviceB")。其中serviceB为B类的驼峰名
+方案2.实现BeanDefinitionRegistryPostProcessor接口，该接口会在所有的bean定义都注册后执行，我们可以手动注册新的bean定义、修改属性、控制bean定义的执行顺序。该方式更加灵活
+//手动控制顺序
+BeanDefinitionBuilder serviceB = BeanDefinitionBuilder.genericBeanDefinition(ServiceB.class);
+registry.registerBeanDefinition("serviceB", serviceB.getBeanDefinition());
+BeanDefinitionBuilder serviceA = BeanDefinitionBuilder.genericBeanDefinition(ServiceA.class);
+registry.registerBeanDefinition("serviceA", serviceA.getBeanDefinition());
 
 依赖注入的几种方式
 比如有一个类A，有属性B，并提供了有参构造器
@@ -35,7 +45,7 @@ MVC的工作流程
 9.若ModelAndView不为null，则解析为view。DispatcherServlet内有一个List<ViewResolver>，实现了resolveViewName方法（返回view），遍历并解析，返回第一个能解析成功的view
 10.对view渲染（render），将model转换为response
 11.返回response
-总结：DispatcherServlet是整个流程的控制中心。HandlerMapping通过拓展实现了不同的映射方式。
+总结：DispatcherServlet是整个流程的控制中心。HandlerMapping通过拓展实现了不同的映射方式
 
 MVC常用的注解及作用
 @RestController：Controller和ResponseBody的组合，默认返回json而不是视图
@@ -87,8 +97,6 @@ spring bean的生命周期
 
 spring bean的作用域
 单例，默认；原型，为每个请求创建一个实例；request，为每个网路请求创建一个实例；session，保证每个session中有一个实例；global-session
-
-
 
 单例bean是线程安全的吗
 spring本身没有对单例bean做任何多线程的封装处理，线程安全问题是开发人员要考虑的，spring不关心
@@ -160,13 +168,6 @@ spring使用了哪些设计模式
 优雅关闭
 底层依赖shutdown hook，是触发点
 触发后，执行bean的destroy方法、@PreDestroy
-
-为何springboot 3.0开始移除了spring.factories
-为了支持云原生，为了提高启动速度。传统方式在运行时扫描并加载spring.factories，效率低。而3.0则是在编译时确定自动配置的类
-为何3.0可以编译器确定，2.7之前只能运行期确定
-2.7引入了@AutoConfiguration注解。imports配置文件下的@Configuration类，相当于添加了@AutoConfiguration注解。编译期间，spring会识别该注解，借助APT的方式实现生成代码
-什么是APT
-Annotation Processing Tool，java编译器的一个内置工具，可以在编译期间扫描和处理源代码中的注解，生成新的源文件或资源。比如Lombok的@Data注解
 
 如何在spring运行期间动态生成bean
 已定义DynamicService这个类，包含name和description两个属性。

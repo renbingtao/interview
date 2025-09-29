@@ -18,6 +18,19 @@ spring自动装配的原理
 启动器，一站式解决依赖集合。传统的spring开发中，引入某个功能时，需要手动添加依赖并手动解决版本兼容问题，而使用starter只用添加一个starter依赖即可解决依赖及版本的问题
 springboot的官方启动器都是以spring-boot-starter-命名的。要构建一个简单的 Web 应用，添加spring-boot-starter-web依赖即可
 
+如何自定义一个starter
+新建一个MyStarter工程，加入一个@Configuration类，声明各种bean。一般还要和@ConditionalOnXXX配合使用
+2.7之前：src/main/resources/META-INF目录下新建spring.factories文件，该文件为k=v的格式，key=org.springframework.boot.autoconfigure.EnableAutoConfiguration，v为自己自定义的Configuration类，多个类以逗号分割
+3.0之后：src/main/resources/META-INF/spring目录下新建org.springframework.boot.autoconfigure.AutoConfiguration.imports配置文件，内容为Configuration类的全路径，多个类以逗号分割
+2.7-3.0两种都支持
+
+为何springboot 3.0开始移除了spring.factories
+为了支持云原生，为了提高启动速度。传统方式在运行时扫描并加载spring.factories，效率低。而3.0则是在编译时确定自动配置的类
+为何3.0可以编译器确定，2.7之前只能运行期确定
+2.7引入了@AutoConfiguration注解。imports配置文件下的@Configuration类，相当于添加了@AutoConfiguration注解。编译期间，spring会识别该注解，借助APT的方式实现生成代码
+什么是APT
+Annotation Processing Tool，java编译器的一个内置工具，可以在编译期间扫描和处理源代码中的注解，生成新的源文件或资源。比如Lombok的@Data注解
+
 springboot配置加载顺序，上面的被下面的覆盖
 @PropertySource注解指定的文件
 application.yml
@@ -30,9 +43,4 @@ Java系统属性（System.getProperties()）
 为何springboot的jar可以直接运行
 springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
 打出来的是Fat jar，包含各种jar包
-java -jar会读取manifest文件中的main class（这是jvm的规范）的启动类JarLauncher，读取jar包并启动manifest中的start-class类
-
-如何自定义一个starter
-新建一个MyStarter工程，加入一个@Configuration类，声明各种bean。一般还要和@ConditionalOnXXX配合使用
-在src/main/resources下的META-INF/spring目录下，新建org.springframework.boot.autoconfigure.AutoConfiguration.imports配置文件，内容为Configuration类的全路径
-其他工程引入stater即可。上述是基于springboot 3实现的；2.7之前则配置文件为spring.factories；2.7-3.0两种都支持
+java -jar会读取META-INF/MANIFEST.MF文件中的Main-Class（这是jvm的规范）的启动类JarLauncher，JarLauncher会读取BOOT-INF/libs/下的jar包（各种starter就放在这里）并最终调用MANIFEST.MF文件中的Start-Class（springboot特有的）对应的启动类，即带有@SpringBootApplication注解的类
