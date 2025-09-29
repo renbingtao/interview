@@ -133,7 +133,11 @@ redLock
 1.set key value nx ex 10  其中key为分布式锁的标识，value为客户端标识（比如ip或uuid），10为秒（如果是px则为毫秒）
 2.执行业务代码
 3.lua脚本：if get key == 客户端标识 then del key
-Redisson提供了开箱即用的分布式锁，支持自动续期。调用tryLock()或lock()时，如果没有指定过期时间，redisson会启动后台线程，默认以过期时间的1/3为间隔来续期。如果指定了过期时间，则不会启动续期
+Redisson提供了开箱即用的分布式锁，支持自动续期。具体代码如下
+RedissonClient redissonClient = Redisson.create(config);
+RLock lock = redissonClient.getLock(lockKey);
+boolean isLocked = lock.tryLock(waitTime, leaseTime, unit);
+调用tryLock()或lock()时，如果没有指定过期时间，redisson会启动后台线程，默认以过期时间的1/3为间隔来续期。如果指定了过期时间，则不会启动续期
 自动续期是基于看门狗watchDog实现的。看门狗会每隔10秒检查锁的状态，如果仍然被当前线程持有，则通过expire 30重置过期时间
 redisson的定时任务（10秒一次）是基于netty的时间轮实现的（netty又是基于jvm实现的），所以如果java进程重启，则不会续期
 延展：netty的时间轮是如何实现的？
