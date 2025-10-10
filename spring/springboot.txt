@@ -1,4 +1,3 @@
-
 springboot不需要独立的容器也能运行，因为内嵌了各种servlet容器如tomcat，不再需要打成war包，只需要打成jar包就能独立运行
 
 springboot的核心注解是哪个
@@ -7,7 +6,7 @@ springboot的核心注解是哪个
 @EnableAutoConfiguration：自动配置的核心注解
 @ComponentScan
 
-spring自动装配的原理
+spring boot是如何实现自动配置的
 核心是@EnableAutoConfiguration，里面包含了两个注解：
 1.@AutoConfigurationPackage
 这个注解的作用说白了就是将主配置类（@SpringBootApplication标注的类）所在包以及子包里面的所有组件扫描并加载到spring的容器中，这也就是为什么我们在利用springboot进行开发的时候，无论是Controller还是Service的路径都是与主配置类同级或者次级的原因
@@ -43,4 +42,78 @@ Java系统属性（System.getProperties()）
 为何springboot的jar可以直接运行
 springboot提供了插件spring-boot-maven-pulgin插件用于打成jar包
 打出来的是Fat jar，包含各种jar包
-java -jar会读取META-INF/MANIFEST.MF文件中的Main-Class（这是jvm的规范）的启动类JarLauncher，JarLauncher会读取BOOT-INF/libs/下的jar包（各种starter就放在这里）并最终调用MANIFEST.MF文件中的Start-Class（springboot特有的）对应的启动类，即带有@SpringBootApplication注解的类
+java -jar会读取META-INF/MANIFEST.MF文件中的Main-Class（这是jvm的规范）的启动类JarLauncher
+JarLauncher创建classloader并让它加载BOOT-INF/libs/下的jar包（各种starter就放在这里）
+JarLauncher最终调用MANIFEST.MF文件中的Start-Class（springboot特有的）对应的启动类，即带有@SpringBootApplication注解的类
+JarLauncher是springboot独有的，为了实现可独立运行的jar而设计的。传统的spring是没有这个的
+
+spring boot启动流程
+创建SpringApplication实例
+    检查是否为web应用
+    读取注册初始化器（BootstrapRegistryInitializer）默认0个
+    读取上下文初始化器（ApplicationContextInitializer）默认7个
+    读取应用监听器（ApplicationListener）默认8个
+调用SpringApplication的run方法（下面都展示实际的方法名）
+    createBootstrapContext
+        创建启动上下文，并逐一加载BootstrapRegistryInitializer
+    getRunListeners
+        运行监听器
+    listeners.starting
+        发布【starting事件】，该事件会从spring.factories配置文件中获取并加载EventPublishingRunListener，即注册核心的监听器
+    prepareEnvironment
+        getOrCreateEnvironment
+        configureEnvironment
+            配置属性源，比如环境变量，jvm参数等，并放在propertySources中
+            激活配置文件（profiles），根据环境（dev，sit，prd）加载不同的配置
+            处理命令行参数，如 --server.port=8080
+        发布【environmentPrepared事件】：EnvironmentPostProcessorApplicationListener会串行执行的EnvironmentPostProcessor
+    printBanner
+    createApplicationContext
+        默认是servlet web上下文
+    prepareContext
+        postProcessApplicationContext
+            设置beanNameGenerator、resourceLoader、addConversionService
+        applyInitializers
+            执行初始化器，即ApplicationContextInitializer
+            createBeanDefinitionLoader
+                创建bean定义加载器并加载bean定义，放入beanDefinitionMap（ConcurrentHashMap）。这里只加载了少数bean定义，主要是启动类，即@SpringApplication标注的类
+        发布【contextLoaded事件】
+    refreshContext
+        即IOC的创建流程或者说自动装配bean，比较复杂，放在后面
+    listeners.started
+        发布【started事件】
+    callRunners
+        调用CommandLineRunner或ApplicationRunner接口（这两个都是Runners的子类）
+
+ApplicationContext refresh的流程
+代码实现位于AbstractApplicationContext
+1.环境准备
+prepareRefresh：对servletContextInitParams和servletConfigInitParams参数赋值，并校验是否有必填的环境变量
+2.容器处理
+obtainFreshBeanFactory：创建或获取一个新的BeanFactory实例，对于spring boot来说相当于空方法
+prepareBeanFactory：
+    setBeanClassLoader
+    setBeanExpressionResolver（表达式解析器）
+    addPropertyEditorRegistrar（配置文件处理器）
+    beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));（用来解析aware接口）
+    beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));（用来注册内部bean作为事件监听器）
+postProcessBeanFactory：对BeanFactory做一些额外处理，主要是注册scope，注册servlet相关的bean
+invokeBeanFactoryPostProcessors：逐一调用BeanFactoryPostProcessor，包括很重要的ConfigurationClassPostProcessor：用来加载所有@Configuration配置类及内部注解（比如@Bean，@ComponentScan，@Import）并转化为bean定义，放入beanDefinitionMap
+registerBeanPostProcessors：注册（不是使用）BeanPostProcessor并排序。这些BeanPostProcessor在bean初始化前后进行额外的处理
+3.bean处理
+initMessageSource：初始化MessageSource，可用于国际化
+initApplicationEventMulticaster：初始化事件广播器，用于发布和处理应用程序事件
+onRefresh：构造并启动web服务器，默认是tomcat
+registerListeners：查找并注册所有实现了ApplicationListener接口的Bean，将它们注册到事件广播器（即ApplicationEventMulticaster）中，以便监听和处理应用程序事件
+finishBeanFactoryInitialization：创建所有剩余的单例Bean，即构造对象，填充属性，初始化，注册销毁。bean生成后会放入单例池singletonObject中
+finishRefresh：
+    initLifecycleProcessor：初始化生命周期管理器
+    getLifecycleProcessor().onRefresh()：调用所有实现了LifecycleProcessor接口的bean的onRefresh方法，最后会Lifecycle接口的调用start方法（容器关闭时也会调用对应的stop方法）
+    publishEvent(new ContextRefreshedEvent(this))：发布容器刷新完成事件
+
+BootstrapContext是什么及作用
+BootstrapContext是spring boot的启动阶段的早期的、临时的上下文，用来管理早期必需的基础组件，比如配置文件解析器
+
+SpringApplicationRunListeners是什么及作用
+它是事件发布与监听的协调者，不负责具体的业务逻辑。在spring boot启动的各个阶段，发布各种事件并通知监听器，执行自定义的逻辑。常见的事件如下：
+starting，environmentPrepared，contextPrepared，contextLoaded，started

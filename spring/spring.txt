@@ -1,4 +1,3 @@
-
 Autowired和Resource注解的区别
 两者都是用来做bean的注入
 Autowired默认按类型注入，若有多个类型则根据名称查找（也可以手动指定名称@Qualifier）
@@ -79,19 +78,22 @@ spring aop失效的场景
 2.自调用
 
 spring bean的生命周期
-定义：读取配置文件（xml，注解等）解析bean definition并注册到BeanDefinitionRegistry
-实例化：根据bean definition通过反射创建bean对象。单例bean在spring启动时就实例化，原型在请求获取bean时才实例化
-设置对象属性：根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean。即populateBean方法
-初始化：即initializeBean方法
-    检测bean是否实现了XXXAware接口
-        BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
-        BeanFactoryAware同理，调用setBeanFactory
-        ApplicationContextAware同理，调用setApplicationContext
-    执行BeanPostProcessor的前置方法。BeanPostProcessor是spring提供的一个拓展接口
-    若bean实现了InitializingBean接口，调用afterPropertiesSet，用于属性设置完成后做一些操作
-    执行自定义的初始化方法：比如@PostConstruct（这不是spring的注解，spring只是支持）或@Bean中指定了init-method方法
-    BeanPostProcessor的后置方法，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
-销毁：
+loadBeanDefinitions：
+    读取配置文件（xml，注解等）解析bean definition并注册到BeanDefinitionRegistry
+createBean：
+    createBeanInstance：通过反射通过反射创建bean对象。单例bean在spring启动时就实例化，原型在请求获取bean时才实例化
+    populateBean：通过三级缓存填充属性，即根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean。
+    initializeBean：
+        检测bean是否实现了XXXAware接口
+            BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
+            BeanFactoryAware同理，调用setBeanFactory
+            ApplicationContextAware同理，调用setApplicationContext
+        执行BeanPostProcessor的前置方法。BeanPostProcessor是spring提供的一个拓展接口
+        若bean实现了InitializingBean接口，调用afterPropertiesSet，用于属性设置完成后做一些操作
+        执行自定义的初始化方法：比如@PostConstruct（这不是spring的注解，spring只是支持）或@Bean中指定了init-method方法
+        BeanPostProcessor的后置方法，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
+    registerDisposableBean：注册销毁时执行的方法
+destroy：
     若实现了DisposableBean，则调用destroy方法
     执行自定义的销毁方法：@PreDestroy或@Bean指定了destroy-method
 
@@ -129,34 +131,6 @@ spring实例化A，并把A的工厂对象放入三级缓存中
 2.若提前放到早期暴漏阶段，从工厂对象中获取A，即调用ObjectFactory.getObject()时，会检查是否需要创建代理对象，若需要则在此阶段创建代理对象，并将代理对象放入二级缓存，即B.A为代理对象。A的后续创建都使用代理对象，A和B.A一致
 
 理论上，在实例化阶段检查是否需要代理，也可以只需要二级缓存，但会违反单一职责的思想 --> 实例化应只做实例化应做的事，不应考虑代理的事
-
-spring启动流程
-创建SpringApplication实例
-    检查是否为web应用
-    查找并加载初始化器（ApplicationContextInitializer）
-    查找并加载应用监听器（ApplicationListener）
-调用SpringApplication的run方法
-    准备环境（Environment）
-        加载各种配置源，比如application.properties
-        根据配置信息创建Environment对象
-    创建ApplicationContext实例（根据之前判断的应用类型创建不同实例）
-    准备ApplicationContext
-        绑定环境
-        初始化器（ApplicationContextInitializer）对ApplicationContext进行初始化
-    刷新ApplicationContext
-        obtainFreshBeanFactory：创建或获取一个新的 BeanFactory 实例，如果是xml配置文件，还会解析bean definition
-        prepareBeanFactory：配置 BeanFactory，比如添加BeanPostProcessor
-        postProcessBeanFactory：后置处理 BeanFactory，允许子类对BeanFactory做一些额外处理，比如基于注解的ApplicationContext会解析bean definition
-        invokeBeanFactoryPostProcessors：调用 BeanFactoryPostProcessor 对 BeanFactory 进行后置处理，允许在 Bean 实例化之前修改 Bean 定义
-        registerBeanPostProcessors：注册 BeanPostProcessor，其可用于在 Bean 实例化、属性注入前后进行额外的处理
-        initMessageSource：初始化 MessageSource，可用于国际化
-        initApplicationEventMulticaster：初始化事件广播器，用于发布和处理应用程序事件
-        onRefresh：允许子类做一些刷新操作
-        registerListeners：注册事件监听器，查找并注册所有实现了 ApplicationListener 接口的 Bean，将它们注册到事件广播器中，以便监听和处理应用程序事件
-        finishBeanFactoryInitialization：实例化所有剩余的单例 Bean。如果是 Web 应用，会初始化 EmbeddedWebServer
-    调用CommandLineRunner或ApplicationRunner接口
-
-此外整个过程中会发布各种事件
 
 spring使用了哪些设计模式
 简单工厂模式：BeanFactory
@@ -233,3 +207,10 @@ spring为何不推荐使用@Autowired
 2.隐藏了依赖关系，类应该公开它的依赖项
 3.@Autowired可以解决循环依赖，但spring不希望开发依赖框架解决，而是重构代码解决循环依赖
 推荐使用构造器和setter方法
+
+spring如何解决跨域问题
+什么是跨域问题？跨域是浏览器同源策略限制造成的，防止执行其他网站的脚本
+如何判断是否同源？协议+域名+端口都相同，则同源，任一不同则不同源。http和https是不同的协议
+跨域会阻止什么操作？1.接口调用 2.DOM查询（前端相关）
+如何解决跨域问题：在响应头中添加key="Access-Control-Allow-Origin"，value="允许的协议+域名+端口"，浏览器会检查
+spring解决跨域的方案：1.在方法上添加@CrossOrigin(origins = "http://example.com") 2.实现WebMvcConfigurer接口的addCorsMappings方法
