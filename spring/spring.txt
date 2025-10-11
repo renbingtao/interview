@@ -88,11 +88,11 @@ createBean：
             BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
             BeanFactoryAware同理，调用setBeanFactory
             ApplicationContextAware同理，调用setApplicationContext
-        执行BeanPostProcessor的前置方法。BeanPostProcessor是spring提供的一个拓展接口
+        执行BeanPostProcessor的前置方法postProcessBeforeInitialization。BeanPostProcessor是spring提供的一个拓展接口
         若bean实现了InitializingBean接口，调用afterPropertiesSet，用于属性设置完成后做一些操作
         执行自定义的初始化方法：比如@PostConstruct（这不是spring的注解，spring只是支持）或@Bean中指定了init-method方法
-        BeanPostProcessor的后置方法，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
-    registerDisposableBean：注册销毁时执行的方法
+        BeanPostProcessor的后置方法postProcessAfterInitialization，在这一步会检测bean对象是否使用了aop，若使用了则创建代理对象并返回
+    registerDisposableBean：注册销毁时执行的方法。DisposableBean是一个接口，有destroy方法。如果某个bean实现了该接口，则会放入一个linkedHashMap中
 destroy：
     若实现了DisposableBean，则调用destroy方法
     执行自定义的销毁方法：@PreDestroy或@Bean指定了destroy-method

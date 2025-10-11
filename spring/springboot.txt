@@ -50,16 +50,17 @@ JarLauncher是springboot独有的，为了实现可独立运行的jar而设计�
 spring boot启动流程
 创建SpringApplication实例
     检查是否为web应用
-    读取注册初始化器（BootstrapRegistryInitializer）默认0个
-    读取上下文初始化器（ApplicationContextInitializer）默认7个
-    读取应用监听器（ApplicationListener）默认8个
+    设置注册初始化器（BootstrapRegistryInitializer）默认0个
+    设置上下文初始化器（ApplicationContextInitializer）默认7个
+    设置应用监听器（ApplicationListener）默认8个
+    备注：3个方法都是调用了getSpringFactoriesInstances(XX.class)，该方法会调用classLoader.getResources（传入的参数为常量META-INF/spring.factories）来获取全部资源（无论它们在哪，哪怕是jar包内），然后实例化
 调用SpringApplication的run方法（下面都展示实际的方法名）
     createBootstrapContext
         创建启动上下文，并逐一加载BootstrapRegistryInitializer
     getRunListeners
-        运行监听器
+        从spring.factories配置文件中获取SpringApplicationRunListener的集合，其中最主要的是EventPublishingRunListener
     listeners.starting
-        发布【starting事件】，该事件会从spring.factories配置文件中获取并加载EventPublishingRunListener，即注册核心的监听器
+        发布【starting事件】。其中EventPublishingRunListener会把该事件转换成spring标准事件SpringApplicationEvent，然后发布
     prepareEnvironment
         getOrCreateEnvironment
         configureEnvironment
