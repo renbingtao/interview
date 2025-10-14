@@ -82,7 +82,7 @@ loadBeanDefinitions：
     读取配置文件（xml，注解等）解析bean definition并注册到BeanDefinitionRegistry
 createBean：
     createBeanInstance：通过反射通过反射创建bean对象。单例bean在spring启动时就实例化，原型在请求获取bean时才实例化
-    populateBean：通过三级缓存填充属性，即根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean。
+    populateBean：通过三级缓存填充属性，即根据name或type，通过构造器、set方法、属性等方式注入bean依赖的其他bean
     initializeBean：
         检测bean是否实现了XXXAware接口
             BeanNameAware接口，则调用setBeanName方法。这个方法不是让开发人员设置bean的name，只是用来获取name，而之所以叫做setXX，是站在spring框架而非开发的角度，为没有name的bean设置name
