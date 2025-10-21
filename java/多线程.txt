@@ -49,6 +49,7 @@ putstatic
 ExecutorService的关闭
 shutdown：拒绝新任务，等待现有的任务执行完
 shutdownNow：停止现有的任务
+建议的关闭方式：先调用shutdown，然后调用awaitTermination超时等待，如果返回false则直接调用shutdownNow
 
 concurrentHashMap原理
 java8之前，分段锁，分成16个段，每个段内部是一个小的hashmap，对段操作时需要先获取锁，因此并发最多为16
