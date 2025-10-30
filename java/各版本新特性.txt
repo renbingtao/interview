@@ -1,0 +1,41 @@
+【8】
+lambda表达式：new Thread(() -> System.out.println("hello world"));
+函数式接口：只有一个抽象方法的接口，比如Function，Consumer，Supplier
+stream api：list.stream().filter(xx).map(xx).collect(Collectors.toList());
+Optional类
+新的日期类：LocalDate、LocalTime、LocalDateTime
+
+9
+模块系统：module a.b {}
+接口允许定义私有方法（以及静态私有方法）
+
+10
+引入了var关键字，编译器会自动推断变量的类型
+
+【11】
+标准的HTTP客户端：HttpClient.newBuilder().xxxx.build();HttpRequest.newBuilder().xxx.build();代替了HttpUrlConnection
+Files类新增了文件操作的方法，不再需要使用FileReader，FileWriter。比如写：Files.writeString(Paths.get("abc.txt"),"文件内容"，StandardCharsets.UTF_8)
+
+【14】
+switch优化：switch(a){
+    case 'A','B' -> 100;
+    case 'C' -> {
+        System.out.println("ab");
+        yeild 90; //使用yield关键字返回值90，注意不是return
+    }
+}
+
+16
+引入了record，相当于@Data POJO。举例：public record Person(String name,int age){}
+优化instanceof：优化前：if(a instanceof Person){Person b = (Person) a;} 优化后：if(a instanceof Person p){p.getName();}
+
+【17】
+长期支持的版本（TLS），很多AI框架都是从这个版本开始支持，比如springboot3，LangChain4j
+
+【21】
+支持虚拟线程。在此之前，每个线程对应操作系统中的一个线程
+优化instanceof，支持多种类型：switch(a) {
+    case String str -> "文本"+str;
+    case Integer i -> "数字"+i;
+    default -> "未知类型";
+}
