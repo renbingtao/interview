@@ -11,3 +11,12 @@ sqlsession内包含一个executor，executor内有一个LocalCache
 
 mapper是接口没有实现类，为何还可以调用
 mybatis使用jdk动态代理生成代理对象（根据xml），调用时实际是调用的代理对象的方法
+
+mybatis执行流程是怎样的
+1.生成SqlSessionFactory
+2.SqlSessionFactory.openSession()创建会话（SqlSession）。在最常见的spring声明式事务中，相当于开启了一个事务
+3.生成mapper的代理对象
+4.调用代理对象的方法时，匹配对应的sql，并绑定参数
+5.执行sql
+6.结果映射为resultMap
+7.事务提交，关闭session
