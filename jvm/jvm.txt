@@ -1,19 +1,4 @@
 
-虚拟机类加载机制
-类的生命周期：加载、验证、准备、解析、初始化、使用、卸载
-加载：将class文件从磁盘或网络中读取到内存
-验证：保证class文件符合jvm的规范
-准备：为类中的静态变量分配内存并写0。比如static int a=123，则此时a=0，但如果加上final，则a=123
-解析：将常量池内的符号引用转换为直接引用
-初始化：执行类构造器（clinit方法），包括类变量的赋值和static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问。语句，编译器收集的顺序取决于源文件的顺序，static{}只能访问之前定义的变量，对于之后定义的变量，可以赋值但不能访问
-
-classLoader：判断两个类是否相等，需要这两个类是由同一个类加载器加载的前提下，即即时两个类来自同一个class文件，被同一个jvm加载，只要是不同的classloader加载，那它们就不是相等的
-三层类加载器：
-启动类加载器bootstrap classloader，加载java_home/lib目录下的jar包；
-扩展类加载器extension classloader，加载java_home/lib/ext目录下的jar包；
-系统类加载器application classloader，加载classpath下的jar包。
-双亲委派模型采用组合而非继承的方式实现，不会自己加载类，而是交给父类加载，父类无法加载时才会自己去加载。
-
 java内存模型与线程
 处理器的高速缓存与主内存通过MESI协议保持一致性。java内存模型规定了所有变量都应该存储在主内存上，每个线程也可以有自己的工作内存，其中保存了被该线程使用的变量的主内存副本，线程对变量的操作都必须在工作内存中进行，而不能直接操作主内存中的数据，线程间变量值的传递都需要通过主内存来完成。java内存模型定义了8中操作：lock,unlock,read,load,use,assign,store,write。
 
@@ -66,14 +51,6 @@ jvm主要组成部分
 执行引擎：执行class指令
 运行时数据区：平时说的jvm内存
 本地接口组件：与本地库交互，是其他变成语言交互的接口
-
-tomcat类加载机制：tomcat拓展了java类加载机制，引入了多个自定义的类加载器：
-Common ClassLoader：加载tomcat本身，父类加载器是App ClassLoader
-Catalina ClassLoader：加载tomcat需要的类，父类加载器是Common ClassLoader
-Shared ClassLoader：加载所有Web应用共享的类和资源，父类加载器是Common ClassLoader
-WebApp ClassLoader：每个应用有自己独立的WebApp ClassLoader，加载该应用自身的类，父类加载器是Shared ClassLoader
-Jsp ClassLoader：每个JSP文件都有一个对应的ClassLoader，父类加载器是WebApp ClassLoader
-WebApp ClassLoader打破了传统的双亲委派机制，会先自己加载，找不到时才让父类加载
 
 ========================类文件结构========================
 

@@ -1,0 +1,78 @@
+
+=============类加载过程=============
+
+加载
+通过一个类的全限定名获取二进制字节流，转化为运行时数据结构，生成class对象。字节流的来源可以是：zip压缩包（jar、war等）、网络、运行时生成（动态代理）、其他文件（比如JSP应用，JSP文件会生成class文件）
+加载阶段是开发人员可控性最强的阶段，可以使用自定义的ClassLoader来加载
+
+验证
+保证class文件符合jvm的规范
+
+准备
+为类中的【静态变量】分配内存并写0。比如static int a=123，则此时a=0，但如果加上final，则a=123
+
+解析
+将常量池内的符号引用转换为直接引用。符号引用可以是任何形式的字面量。直接引用是直接指向目标的指针，可理解为内存地址
+
+初始化
+初始化就是执行执行类构造器clinit方法的过程
+clinit方法是javac编译器自动生成的，包含了类变量的赋值和静态语句块static{}语句，顺序和源文件的顺序保持一致。static{}语句块中只能访问static{}之前的变量，对于之后的变量，可以赋值但不能访问
+public class Test {
+    static {
+        i=0;    //正常编译通过
+        sout(i);    //报错“非法向前引用”
+    }
+    static int i=1;
+}
+clinit方法不需要显式调用父类构造器，jvm保证子类执行clinit前已经执行过父类的clinit方法
+clinit方法不是必须的，如果不存在类变量的赋值和静态语句块static{}语句，则不生成clinit方法
+
+使用
+
+卸载
+
+=============类加载器=============
+
+判断两个类是否相等，需要这两个类是由同一个类加载器加载的前提下，即即时两个类来自同一个class文件，被同一个jvm加载，只要是不同的classloader加载，那它们就不是相等的
+
+三层类加载器
+
+启动类加载器
+bootstrap classloader，加载java_home/lib目录下的jar包，以及-Xbootclasspath参数指定的jar包，如rt.jar等
+
+扩展类加载器
+extension classloader，加载java_home/lib/ext目录下的jar包
+
+系统类加载器
+application classloader，加载classpath下的jar包
+
+双亲委派模型：类加载器不会自己加载类，而是交给父类加载，父类无法加载时才会自己去加载。这里的父类不是采用继承，而是组合的方式实现。这种模式的好处是防止核心类（比如Object）被重复加载
+
+打破双亲委派模型
+典型的是JNDI服务。JNDI是java的一套规范，把某个资源进行注册，再根据资源名进行查找
+JNDI是java的标准服务，位于rt.jar中，所以由bootstrap classloader来加载，目的是加载classpath下的JNDI服务提供者接口（SPI）的代码
+由于SPI实现的代码（比如mysql驱动）是位于classpath下，所以应该由application classloader加载
+所以问题是如何让application classloader加载本应由bootstrap classloader加载的类
+解决方案
+引入了Thread Context ClassLoader，可以在Thread类中通过set方法设置，默认值是application classloader。这样bootstrap classloader就可以让application classloader来加载jar
+java中SPI的加载几乎都是用这种方式完成的，比如jdbc，jndi
+
+=============tomcat类加载机制=============
+
+tomcat拓展了java类加载机制，引入了多个自定义的类加载器
+Common ClassLoader
+加载tomcat本身，父类加载器是App ClassLoader
+
+Catalina ClassLoader
+加载tomcat需要的类，父类加载器是Common ClassLoader
+
+Shared ClassLoader
+加载所有Web应用共享的类和资源，父类加载器是Common ClassLoader
+
+WebApp ClassLoader
+每个应用有自己独立的WebApp ClassLoader，加载该应用自身的类，父类加载器是Shared ClassLoader
+
+Jsp ClassLoader
+每个JSP文件都有一个对应的ClassLoader，父类加载器是WebApp ClassLoader
+
+WebApp ClassLoader打破了传统的双亲委派机制，会先自己加载，找不到时才让父类加载
