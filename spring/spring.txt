@@ -5,7 +5,7 @@ Resource不是spring的注解，spring只是支持。默认按照名称（加了
 
 @Component和@Bean的区别
 @Component      写在类上                                一般用在自己写的类上                           无法控制创建过程
-@Bean           写在方法上，一般和@Configuration配合      一般用在第三方库中的类（因为无法修改源代码       可以在方法中new对象，控制创建过程
+@Bean           写在方法上，一般和@Configuration配合      一般用在第三方库中的类（因为无法修改源代码）      可以在方法中new对象，控制创建过程
 总结：@Component适合简单、自己写的类，而@Bean适合需要更多控制的场景
 
 BeanFactory和FactoryBean的区别
@@ -29,7 +29,7 @@ registry.registerBeanDefinition("serviceA", serviceA.getBeanDefinition());
 依赖注入的几种方式
 比如有一个类A，有属性B，并提供了有参构造器
 1.构造器注入，即在A的有参构造器上添加@Autowired注解，spring官方推荐的方式。特定是B为final时也可注入；A初始化初始化完成后即可使用；可检测循环依赖
-2.setter注入，即在setB方法上加注解。特定是B为final时无法注入；A初始化完成后B未注入，不能直接使用；可检测循环依赖
+2.setter注入，即在setB方法上加注解。特点是B为final时无法注入；A初始化完成后B未注入，不能直接使用；可检测循环依赖
 3.属性注入，也是最常用的注入，直接在B上加注解。特点和上面一样
 
 MVC的工作流程
