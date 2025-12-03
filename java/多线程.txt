@@ -55,7 +55,7 @@ concurrentHashMap原理
 java8之前，分段锁，分成16个段，每个段内部是一个小的hashmap，对段操作时需要先获取锁，因此并发最多为16
 8及之后采用cas+synchronized关键字
 get方法：
-调用spread方法重新计算hash值，原hash异或（00/11=1，01/10=0）原hash右移16位，再与0x7fffffff（二进制为01111111等）与运算来保证hash值为正数，因为hash为负数有特殊的作用（表示这个node为红黑树）
+调用spread方法重新计算hash值，原hash异或（00/11=1，01/10=0）原hash右移16位，即hash ^ (hash >>> 16)，再与0x7fffffff（二进制为01111111等）与运算来保证hash值为正数，因为hash为负数有特殊的作用（表示这个node为红黑树）
 计算下标，但不是通过table[i]获取，而是通过Unsafe类的方法getObjectVolatile来获取最新的值（数组为volatile Node<K,V> table，volatile并不能保证数据内的元素的修改可见性。此外一个不加volatile关键字的数据，也可以通过Unsafe的这个方法获取最新值）
 比较头结点的key及hash，即数据元素的第一个值，相同则返回
 若头结点的hash<0，则代表node为红黑树（TreeBin为Node的子类，重写了find方法及其他对红黑树的操作方法，红黑树的节点为TreeNode类），调用find方法获取值
