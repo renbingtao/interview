@@ -1,0 +1,38 @@
+参考https://rocketmq.apache.org/zh/docs/quickStart/01quickstart/ 下载二进制文件
+
+上传至/rbt-install
+unzip -d . rocketmq-all-5.3.2-bin-release.zip
+mv rocketmq-all-5.3.2-bin-release /
+cd /rocketmq-all-5.3.2-bin-release/
+
+启动NameServer
+nohup sh bin/mqnamesrv &
+验证namesrv是否启动成功
+tail -f ~/logs/rocketmqlogs/namesrv.log
+成功日志：The Name Server boot success...
+
+启动Broker+Proxy
+NameServer成功启动后，我们启动Broker和Proxy。这里我们使用 Local 模式部署，即 Broker 和 Proxy 同进程部署
+启动broker
+nohup sh bin/mqbroker -n localhost:9876 --enable-proxy &
+验证broker启动成功
+tail -f ~/logs/rocketmqlogs/proxy.log
+成功日志：The broker[broker-a, 10.255.255.254:10911] boot success.
+至此，一个单节点副本的 RocketMQ 集群已经部署起来了，我们可以利用脚本进行简单的消息收发
+
+工具测试消息收发
+在进行工具测试消息收发之前，我们需要告诉客户端NameServer的地址，RocketMQ有多种方式在客户端中设置NameServer地址，这里我们利用环境变量NAMESRV_ADDR
+export NAMESRV_ADDR=localhost:9876
+生产者测试工具
+sh bin/tools.sh org.apache.rocketmq.example.quickstart.Producer
+消费者测试工具
+sh bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
+
+关闭服务器
+sh bin/mqshutdown broker
+sh bin/mqshutdown namesrv
+
+rocketmq的部分jvm参数
+-XX:G1HeapRegionSize=16m                    Region大小，可选 1/2/4/8/16/32MB。4GB堆内存共256个Region
+-XX:G1ReservePercent=25                     默认10，表示老年代预留的百分比空间，防止新生代晋升失败触发full gc
+-XX:InitiatingHeapOccupancyPercent=30       默认45，表示堆内存使用率达到该百分比时，触发【并发标记】。高并发应用可以降低该百分比，提高gc频率，
