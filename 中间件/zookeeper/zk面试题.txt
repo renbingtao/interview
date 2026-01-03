@@ -36,7 +36,7 @@ zk集群由1个leader和多个follower组成，leader负责读写请求，follow
 写数据
 1.如果客户端连接的是follower，且是写请求，则follower把请求转发给leader。如果客户端连接的是leader，则leader直接处理
 2.leader为请求分配一个唯一的事务id，把id+请求内容封装为一个提案，发送给所有从节点。从节点接收后，写入日志（不执行），返回ACK确认
-3.leader收到超过半数的ACK后，发送commit给所有从节点，leader返回成功。其他未写完的follower继续写，写完应答给leader
+3.leader收到超过半数的ACK后，发送commit给所有从节点，leader返回成功，日志应用是【异步】进行的。其他未写完的follower继续写，写完应答给leader
 follower和leader会有短暂的不一致，因此zk是最终一致性（更具体来说是顺序一致性）。不过zk还提供了sync()方法，强制从主节点读取数据
 
 znode数据版本

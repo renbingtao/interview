@@ -31,8 +31,3 @@ sh bin/tools.sh org.apache.rocketmq.example.quickstart.Consumer
 关闭服务器
 sh bin/mqshutdown broker
 sh bin/mqshutdown namesrv
-
-rocketmq的部分jvm参数
--XX:G1HeapRegionSize=16m                    Region大小，可选 1/2/4/8/16/32MB。4GB堆内存共256个Region
--XX:G1ReservePercent=25                     默认10，表示老年代预留的百分比空间，防止新生代晋升失败触发full gc
--XX:InitiatingHeapOccupancyPercent=30       默认45，表示堆内存使用率达到该百分比时，触发【并发标记】。高并发应用可以降低该百分比，提高gc频率，

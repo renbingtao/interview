@@ -1,5 +1,7 @@
-
 RocketMQ支持PushConsumer、SimpleConsumer以及PullConsumer这三种类型的消费者
+
+注意，这几个类对应的sdk都是org.apache.rocketmq:rocketmq-client-java，而非org.apache.rocketmq:rocketmq-client
+前者使用的grpc协议，仅支持5.0版本服务端；后者使用remoting协议，兼容4.x、5.x版本服务端
 
 ======================PushConsumer======================
 一种高度封装的消费者类型，消费消息仅通过【消费监听器】（MessageListener）处理业务并返回消费结果。消息的获取、消费状态提交以及消费重试都通过mq的客户端SDK完成
@@ -29,3 +31,7 @@ SDK内置了一个长轮询线程，先将消息异步拉取到SDK内置的缓�
 PushConsumer严格限制了消息同步处理及每条消息的处理超时时间，适用于以下场景：
 消息处理时间可预估：如果不确定消息处理耗时，经常有预期之外的长时间耗时的消息，PushConsumer的可靠性保证会频繁触发消息重试机制造成大量重复消息
 无异步化、高级定制场景：PushConsumer限制了消费逻辑的线程模型，由客户端SDK内部按最大吞吐量触发消息处理。该模型开发逻辑简单，但是不允许使用异步化和自定义处理流程
+
+======================SimpleConsumer======================
+
+

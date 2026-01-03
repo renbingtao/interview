@@ -1,0 +1,38 @@
+tag
+一个应用尽可能用一个topic，子应用用tag区分
+
+key
+尽可能映射到业务的唯一标识，服务器会为每个消息创建索引（哈希索引），应用可以通过topic、key来查询这条消息内容，因此务必保证key尽可能唯一（减少hash冲突）。常见于设置订单id、用户id、请求id等
+
+消费过程幂等
+通过唯一键确定消息之前是否消费过。可以是msgId，也可以是业务的唯一id。msgId全局唯一，但可能存在相同的消息有不同的msgId的情况，这种时候就需要使用业务id
+
+消费速度慢的处理方式
+1.提高消费并行度：增加消费的并行度，可以提高吞吐量，但到了一定程度，会下降，所以要合理设置并行度
+提高并行度的方法：一个消费组下增加消费者数量（加机器或同一机器下多进程）、提高单个consumer的消费线程数
+2.批量消费：一次性拉取多条消息
+3.设置offset，跳过非重要消息
+4.优化消费者代码
+
+broker角色
+Broker 角色分为 ASYNC_MASTER（异步主机）、SYNC_MASTER（同步主机）以及SLAVE（从机）
+如果对消息的可靠性要求比较严格，可以采用 SYNC_MASTER加SLAVE的部署方式
+如果对消息可靠性要求不高，可以采用ASYNC_MASTER加SLAVE的部署方式
+如果只是测试方便，则可以选择仅ASYNC_MASTER或仅SYNC_MASTER的部署方式
+
+FlushDiskType
+SYNC_FLUSH（同步刷新）相比于ASYNC_FLUSH（异步处理）会损失很多性能，但是也更可靠，所以需要根据实际的业务场景做好权衡
+
+JVM参数
+设置相同的 Xms 和 Xmx 值来防止 JVM 调整堆大小以获得更好的性能
+JVM 是默认 8 字节对齐，建议配置最大堆内存不要超过 32 G，否则会影响 JVM 的指针压缩技术，浪费内存
+如果不关心mq启动时间，可以设置-XX:+AlwaysPreTouch。该参数的作用是jvm启动时，初始化整个堆空间，通过写内存（比如填充0值）保证物理内存被实际分配，而非仅仅保留虚拟内存地址空间
+-XX:+UseG1GC
+-XX:G1HeapRegionSize=16m                        Region大小，可选 1/2/4/8/16/32MB。4GB堆内存共256个Region
+-XX:G1ReservePercent=25                         默认10，表示老年代预留的百分比空间，防止新生代晋升失败触发full gc
+-XX:InitiatingHeapOccupancyPercent=30           默认45，表示堆内存使用率达到该百分比时，触发【并发标记】。高并发应用可以降低该百分比，提高gc频率
+
+linux内核参数
+vm.max_map_count            限制一个进程可能具有的最大内存映射区域数。RocketMQ 将使用 MMAP 加载 CommitLog 和 ConsumeQueue，因此建议将为此参数设置较大的值
+vm.swappiness               定义内核交换内存页面的积极程度。建议将值设置为 10 来避免交换延迟（仅在物理内存耗尽时触发，优先利用物理内存的可用空间）
+File descriptor limits      RocketMQ 需要为文件（ CommitLog 和 ConsumeQueue ）和网络连接打开文件描述符。我们建议设置文件描述符的值为 655350

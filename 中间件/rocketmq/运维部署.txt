@@ -1,0 +1,50 @@
+========================================================部署方式========================================================
+rocketmq 5.0版本要完成基本的消息收发功能，需要的组件包括：NameServer、Broker、Proxy
+Local模式：Broker和Proxy同进程部署
+Cluster模式：Broker和Proxy分别部署
+
+在4.x版本，客户端（生产者和消费者）和broker直连，产生的问题：协议单一、权限/流量管控分散、运维成本高
+proxy相当于【网关】，把客户端和broker解耦。所有流量先经过proxy，由proxy转发给broker
+
+============================Local模式部署============================
+由于 Local 模式下 Proxy 和 Broker 是同进程部署，Proxy本身无状态，因此主要的集群配置仍然以 Broker 为基础进行即可
+
+单节点单副本模式
+只适合测试环境
+
+多节点单副本模式
+即集群内全都是master，不部署slave副本。比如2或者3个master
+
+多节点多副本模式-异步复制
+HA采用异步复制方式，主备有短暂消息延迟（毫秒级）
+master宕机，消费者仍可从slave消费
+具体的启动命令参考官网 https://rocketmq.apache.org/zh/docs/deploymentOperations/01deploy
+
+多节点多副本模式-同步双写
+HA采用同步双写方式，即只有主备都写成功，才向应用返回成功
+性能比异步复制低10%。主节点宕机后，slave不能自动切换为主
+
+============================Cluster模式部署============================
+在 Cluster 模式下，Broker 与 Proxy分别部署，可以在 NameServer和 Broker都启动完成之后再部署 Proxy
+一个 Proxy集群和 Broker集群为一一对应的关系
+
+启动broker和proxy时，必须指定nameserver
+
+========================================================主备自动切换模式部署========================================================
+该模式增加支持自动主从切换的 Controller 组件，其可以独立部署也可以内嵌在 NameServer 中
+
+Controller 部署
+Controller 组件提供选主能力，若需要保证 Controller 具备容错能力，Controller 部署需要三副本及以上（遵循 Raft 的多数派协议）
+controller单节点部署也可以完成failover，但若该节点故障，会影响切换能力，但不影响集群的正常收发功能
+
+Controller部署有两种方式
+嵌入于NameServer进行部署
+在配置文件中添加启用controller相关的参数。参考https://rocketmq.apache.org/zh/docs/deploymentOperations/03autofailover
+
+独立部署
+需要单独部署Controller组件
+独立部署执行以下脚本即可
+nohup sh bin/mqcontroller -c controller.conf &
+
+broker部署
+启动方式和之前相同，增加controller相关参数。比如controllerAddr
