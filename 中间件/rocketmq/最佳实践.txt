@@ -36,3 +36,8 @@ linux内核参数
 vm.max_map_count            限制一个进程可能具有的最大内存映射区域数。RocketMQ 将使用 MMAP 加载 CommitLog 和 ConsumeQueue，因此建议将为此参数设置较大的值
 vm.swappiness               定义内核交换内存页面的积极程度。建议将值设置为 10 来避免交换延迟（仅在物理内存耗尽时触发，优先利用物理内存的可用空间）
 File descriptor limits      RocketMQ 需要为文件（ CommitLog 和 ConsumeQueue ）和网络连接打开文件描述符。我们建议设置文件描述符的值为 655350
+
+订阅关系一致
+订阅关系一致是指，同一个消费者组下所有消费者实例所订阅的Topic、Tag必须完全一致
+如果订阅关系（消费者分组名-Topic-Tag）不一致，会导致消费消息紊乱，甚至消息丢失
+即在mq的视角中，同一消费者组的每个消费者都应是同样的逻辑
