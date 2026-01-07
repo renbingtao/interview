@@ -1,36 +1,3 @@
-# 需要的安装包
-yum install -y yum-utils
-# 设置镜像仓库
-yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-# 更新yum软件包索引
-yum makecache fast
-# 安装docker ce社区版 ee企业版
-yum install docker-ce docker-ce-cli containerd.io
-# 启动docker
-systemctl start docker
-# 查看是否安装成功
-docker version或docker -v
-
-配置镜像
-vi /etc/docker/daemon.json
-{
-    "registry-mirrors": [
-        "https://docker.xuanyuan.me",
-        "https://do.nark.eu.org",
-        "https://docker.registry.cyou",
-        "https://docker-cf.registry.cyou",
-        "https://docker.jsdelivr.fyi",
-        "https://dockercf.jsdelivr.fyi",
-        "https://dockertest.jsdelivr.fyi"
-    ]
-}
-
-docker重启
-systemctl restart docker
-查看镜像是否生效 - Registry Mirrors行
-docker info
-
-
 ================================运维视角================================
 查看镜像
 docker image ls
@@ -55,7 +22,6 @@ docker container stop magical_lovelace
 docker container rm magical_lovelace
 
 ================================开发视角================================
-
 创建springboot应用
 gradle build打成jar包--> rbt-springboot-0.0.1-SNAPSHOT.jar
 不能用gradle jar，否则生成的jar包不包含依赖的lib
@@ -89,7 +55,6 @@ Dockerfile的指令不区分大小写，但一般都是大写
 entrypoint、workdir、cmd、label等不会创建新的镜像层，只是增加了元数据信息
 
 ================================镜像================================
-
 拉取
 docker image pull alpine:latest
 
@@ -105,15 +70,13 @@ docker image inspect ubuntu:latest
 docker image ls --digests alpine
 
 ================================容器================================
-
 停止名为name的容器，使其切换到暂停状态
 docker container stop name
 
 将容器重新启动
 docker container start name
 
-推荐使用两阶段方式来停止并杀死容器，即stop && rm。因为stop会向容器pid=1的进程发送sigterm信号，为进程预留一个优雅停止的机会。
-
+推荐使用两阶段方式来停止并杀死容器，即stop && rm。因为stop会向容器pid=1的进程发送sigterm信号，为进程预留一个优雅停止的机会
 
 重启策略 docker run --restart always
 no：默认，不自动重启，容器退出后完全不重启
@@ -121,9 +84,7 @@ always：除非容器被明确停止，比如docker container stop，否则会�
 unless-stopped：和上面类似，区别在于，通过stop命令停止某个容器，docker daemon重启时，该容器【不会】重启
 on-failure：退出容器且返回值不是0时重启容器。docker daemon重启时，停止状态的容器也会重启
 
-
 ================================应用的容器化================================
-
 为指定的镜像添加一个额外的标签
 docker image tag oldImage:tag newImage:tag
 
@@ -133,10 +94,7 @@ docker image tag oldImage:tag newImage:tag
 所以尽量将容易发生变化的指令置于Dockerfile文件的后方执行
 COPY和ADD会检查复制的内容是否发生了变化，即使指令本身没有变化，但复制的内容可能发生了变化。原理是计算每一个复制文件的checksum值，并与缓存中的对比
 
-
-
 ================================卷与持久化================================
-
 用户创建卷，创建容器，将卷挂载到容器上。即使容器被删除，卷与数据仍然存在
 
 创建新卷，名为myvol，默认使用local驱动
@@ -159,7 +117,6 @@ docker run -it --mount source=myvol,target=/vol image_name
 
 
 ================================docker安全================================
-
 安全的本质就是分层
 内核命名空间能够将操作系统拆分，使其看起来就像多个独立的操作系统
 docker的本质就是命名空间的有组织集合
@@ -172,16 +129,13 @@ PID：每个容器都有自己的进程树，看不到其他容器或主机的�
 容器之间是互相隔离的，却共享OS资源，控制组用于限额，防止单个容器占用主机全部的CPU、内存或者IO
 
 ================================docker网络================================
-
 docker网络有几下几种
 1.桥接（默认）：为每个容器分配独立的ip，通过虚拟网桥通信，拥有和宿主机同级别的局域网ip
 2.host：共享宿主机的网络，即使用宿主机的ip。隔离性差，可能有端口冲突
 3.none：无网络，完全隔离
 
 ================================虚拟机网络================================
-
 举例：路由器（192.168.188.1）为宿主机分配了192.168.188.11，宿主机上启动了虚拟机
-
 1.桥接：直接连接物理网络
 路由器为虚拟机分配了192.168.188.22，独立于宿主机，虚拟机可以和宿主机、同网段下的其他PC机互访。如果网络出现故障，则虚拟机无法访问宿主机和PC机
 2.NAT：共享宿主机的ip
