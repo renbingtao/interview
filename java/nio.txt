@@ -1,0 +1,31 @@
+
+========================================== BIO ==========================================
+最传统的IO模型，一个线程全程绑定一个TCP连接（全生命周期）。在实际场景中，绝大多数连接都是空闲的，即没有数据要接收/处理，线程阻塞在read()/write()方法
+请求几千几万时，要创建大量空闲的线程，导致资源瓶颈
+使用线程池可以避免频繁创建，但当线程池资源耗尽时，会执行拒绝策略，且治标不治本，大量线程仍处于空闲状态
+
+==========================================  NIO ==========================================
+java 1.4出现，非阻塞，线程绑定IO事件，reactor模式。每个TCP连接被封装成channel，并注册到一个selector上。selector会阻塞式地监听这些channel是否发生了IO事件（数据可读/数据可写）
+NIO最重要的地方在于创建连接后，不需要对应地创建一个线程，而是注册到IO多路复用器上。那么一个selector线程可以同时处理多个连接
+NIO的本质是延迟IO操作，直到真正发生IO的时候，而不是BIO那样只要IO流打开了就等待IO操作
+核心组件为：Channels、Buffers、Selectors
+IO                  NIO
+面相流         面相缓冲区
+阻塞              非阻塞
+无               selector
+
+===================== Channel =====================
+和IO中的Stream(流)是差不多的。只不过Stream是单向的，譬如：InputStream,OutputStream.而Channel 是双向的，既可以用来进行读操作，又可以用来进行写操作
+NIO中的Channel的主要实现有：
+FileChannel：文件IO
+DatagramChannel：UDP
+SocketChannel：TCP+Client，主动发起TCP连接
+ServerSocketChannel：TCP+Server，监听客户端TCP连接
+
+===================== Buffer =====================
+NIO中的关键Buffer实现有：ByteBuffer, CharBuffer, DoubleBuffer, FloatBuffer,IntBuffer, LongBuffer, ShortBuffer
+分别对应基本数据类型: byte, char, double,float, int, long, short
+
+===================== Selector =====================
+Selector单线程处理多个Channel
+
