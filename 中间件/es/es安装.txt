@@ -26,7 +26,7 @@ discovery.seed_hosts: [host1]
 cluster.initial_master_nodes: ["node-1"]
 
 
-# 创建 elasticsearch 用户
+# 创建 elasticsearch 用户（es处于安全考虑，禁止以root用户启动）
 adduser elasticsearch
 # 设置用户密码
 passwd 123456
