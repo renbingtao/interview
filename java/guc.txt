@@ -4,7 +4,7 @@ guc下的一个抽象类，采用模板方法模式，基于FIFO队列为锁和�
 tryAcquire(int arg)及tryRelease(int arg)：由子类实现，用于快速获取（返回true/false）和释放排他锁，一般需要通过一次cas来实现
 tryAcquireShared(int arg)及tryReleaseShared(int arg)：同样由子类实现，用于快速获取/释放共享锁
 acquire(int arg)：由AQS实现，封装了获取失败后入队的通用流程 -> 不断重试，通过tryAcquire或tryAcquireShared获取锁，如果失败则封装成node节点（双向链表，FIFO，包含Thread属性）并插入到链表的末尾，通过LockSupport.park方法进行阻塞
-当子类调用锁相关的方法时（），会调用到acquire方法，再调用tryAcquire或tryAcquireShared
+当子类调用锁相关的方法时，会调用到acquire方法，再调用tryAcquire或tryAcquireShared
 
 ReentrantLock
 state=0表示没有线程竞争锁资源，>=1表示有线程持有锁
