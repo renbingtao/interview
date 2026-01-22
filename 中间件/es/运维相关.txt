@@ -1,0 +1,24 @@
+
+====================== 新增data实例 ======================
+适用于同一机器下新增data实例
+1.复制其他data节点的es文件夹
+2.修改elasticsearch.yml文件
+node.name
+path.data
+path.repo
+path.logs
+http.port
+transport.tcp.port
+其他不变，启动
+ES_JAVA_HOME=/apps/svr/elasticsearch-7.17.7-data-2/jdk /apps/svr/elasticsearch-7.17.7-data-2/bin/elasticsearch -d
+
+====================== 水位线 ======================
+1.查看配置文件elasticsearch.yml或调用api（推荐，有更多详细信息）
+_cluster/settings?include_defaults&filter_path=*.cluster.routing.allocation.disk*
+以下为默认值
+cluster.routing.allocation.disk.watermark.low: 85%                  #高于该值，停止向该节点分配新的分片
+cluster.routing.allocation.disk.watermark.high: 90%                 #高于该值，开始将该节点上的分片迁移到其他空闲节点
+cluster.routing.allocation.disk.watermark.flood_stage: 95%          #灾变水位线，高于该值，禁止写入操作
+
+"flood_stage.frozen.max_headroom": "20GB"                           #当节点磁盘的可用空间 ≤20GB 时，即使使用率没到 95%，也会触发灾变水位线
+
