@@ -15,12 +15,13 @@ IO                  NIO
 无               selector
 
 ===================== Channel =====================
-和IO中的Stream(流)是差不多的。只不过Stream是单向的，譬如：InputStream,OutputStream.而Channel 是双向的，既可以用来进行读操作，又可以用来进行写操作
+和IO中的Stream(流)是差不多的。只不过Stream是单向的，譬如：InputStream,OutputStream。而Channel 是双向的，既可以用来进行读操作，又可以用来进行写操作
+通道可以异步地读写
 NIO中的Channel的主要实现有：
 FileChannel：文件IO
-DatagramChannel：UDP
-SocketChannel：TCP+Client，主动发起TCP连接
-ServerSocketChannel：TCP+Server，监听客户端TCP连接
+DatagramChannel：通过UDP读写网络数据
+SocketChannel：通过TCP读写网络数据
+ServerSocketChannel：监听TCP连接，对每个新进来的连接都创建一个channel
 
 ===================== Buffer =====================
 NIO中的关键Buffer实现有：ByteBuffer, CharBuffer, DoubleBuffer, FloatBuffer,IntBuffer, LongBuffer, ShortBuffer
@@ -29,3 +30,6 @@ NIO中的关键Buffer实现有：ByteBuffer, CharBuffer, DoubleBuffer, FloatBuff
 ===================== Selector =====================
 Selector单线程处理多个Channel
 
+===================== 三者关系 =====================
+channel是双向的流。buffer是连续的内存，存放临时数据。channel从数据源读取数据，写到buffer；程序把数据写到buffer，channel再从buffer读数据，写到数据源
+一个selector允许一个线程处理多个channel
