@@ -54,15 +54,37 @@ Object常用的方法
 wait，配置sync关键字，一个线程在获取锁后，执行wait方法会手动释放锁，等待其他线程唤醒它。notify，配合sync关键字，唤醒wait的某个线程（但此时没有释放锁，只是通知其他线程可以抢锁了）。notifyall，唤醒全部线程。
 
 实现两个线程交替执行
-while循环里执行业务代码，然后notify，然后wait。循环外notify。
+while循环里执行业务代码，然后notify，然后wait。循环外notify。如下
+new Thread(MyThreadTest::print).start();
+new Thread(MyThreadTest::print).start();
+public static void print() {
+    while (n <= 100) {
+        synchronized (lock) {
+            System.out.println(Thread.currentThread() + "" + n);
+            n++;
+            lock.notify();
+            try {
+                lock.wait();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    synchronized (lock) {
+        lock.notifyAll();
+    }
+}
 
 fail-fast
 java集合的一种错误机制，多个线程同时操作同一个集合对象时，可能产生fail-fast事件，抛出异常。遍历前记录modCount（记录集合修改的次数），遍历时比较该值是否有改变，有则说明被修改，抛异常。
 
-进程通信的方式：共享存储、消息传递、管道通信
-消息传递：直接通信（点到点发送，通过send和receive原语，每个进程维护消息缓冲队列）和间接通信（广播信箱为中介，类似消息队列）
-管道通信：管道的本质是一个共享pipe文件，是内存中固定大小的缓冲区
-进程的状态：ready、running、blocked、new、terminated。上面5种为线程活跃（alive）时的状态，此外还有挂起（suspend）和激活（active）两个原语用于控制进程。
+进程通信的方式（IPC）
+管道：最基础的通信方式，本质是内核里的字节流缓冲区，固定大小，不落盘，单向，数据无边界，存在粘包问题
+信号：异步的通信方式，本质是内核向进程发送的异步事件通知，不适用于数据传输，仅用于触发进程的应急处理逻辑。比如SIGKILL
+消息队列：内核中维护的消息链表，消息存在边界，进程可以按消息类型从队列中读取消息，无需严格遵循FIFO顺序，不适合超大数据传输
+共享内存：速度最快，支持超大容量数据传输
+
+进程的状态：ready、running、blocked、new、terminated。上面5种为线程活跃（alive）时的状态，此外还有挂起（suspend）和激活（active）两个原语用于控制进程
 
 shutdown hook
 java允许在jvm关闭时执行一些操作（比如释放资源），代码类似于
