@@ -8,6 +8,7 @@
 java 1.4出现，非阻塞，线程绑定IO事件，reactor模式。每个TCP连接被封装成channel，并注册到一个selector上。selector会阻塞式地监听这些channel是否发生了IO事件（数据可读/数据可写）
 NIO最重要的地方在于创建连接后，不需要对应地创建一个线程，而是注册到IO多路复用器上。那么一个selector线程可以同时处理多个连接
 NIO的本质是延迟IO操作，直到真正发生IO的时候，而不是BIO那样只要IO流打开了就等待IO操作
+当请求发生时，由工作线程池中的空闲工作线程处理请求
 核心组件为：Channels、Buffers、Selectors
 IO                  NIO
 面相流         面相缓冲区
