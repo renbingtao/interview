@@ -10,7 +10,7 @@ boolean	1	布尔类型（实际实现可能不同）
 char	2	16位Unicode字符
 
 String的实现
-jdk8及之前，保存在char[]数组，char采用UTF-16编码，能保存大部分字符
+jdk8及之前，保存在char[]数组，char采用UTF-16编码，能保存大部分字符。常见中文用1个char保存，生僻字用2个char保存
 jdk9开始，保存为byte[]+编码标志（比如Latin-1 单字节编码，UTF-16）
 改动原因：大量string仅包含英文、数字，本可以用一个字节保存，但用了char保存，浪费了50%空间。故jdk9中，若string仅包含Latin-1字符时，采用Latin-1；若包含中文、emoji等，采用UTF-16
 
