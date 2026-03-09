@@ -61,9 +61,9 @@ JNDI是java的标准服务，位于rt.jar中，所以由bootstrap classloader来
 java中SPI的加载几乎都是用这种方式完成的，比如jdbc，jndi
 
 jdbc的类加载机制
-DriverManager是jdk自带的核心类，由bootstrap classloader来加载
-mysql驱动由application classloader加载，在static{}方法中注册到DriverManager中（add到CopyOnWriteArrayList中）
-由于bootstrap classloader的命名空间不包含mysql驱动，所以正常情况下DriverManager根本看不到mysql驱动，更别提加载了
+DriverManager是jdk自带的核心类，由bootstrap classloader来加载。内部有一个CopyOnWriteArrayList，维护了注册的驱动列表。有一个getConnection(String url)方法，根据jdbc url获取对应的Connection
+mysql驱动由application classloader加载，在static{}方法中注册到DriverManager的列表中
+由于bootstrap classloader的命名空间不包含mysql驱动，所以DriverManager根本看不到mysql驱动，更别提加载了
 为了解决这个问题，DriverManager的getConnection方法中，通过Thread.currentThread().getContextClassLoader()获取application classloader，由它加载mysql驱动。即手动获取application classloader，再加载
 
 =============tomcat类加载机制=============
