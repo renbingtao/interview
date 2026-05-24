@@ -1,0 +1,16 @@
+
+启用windows功能
+以win10为例。win+R 查看windows版本，需要win11或者win10 21H2以上版本
+控制面板 -> 程序与功能 -> 打开或关闭 Windows 功能 启动以下功能：
+Virtual Machine Platform（虚拟机平台）
+Windows Subsystem for Linux Support（WSL1）
+
+下载
+https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/noble/ubuntu-24.04.3-wsl-amd64.wsl
+
+安装
+wsl --import Ubuntu-24.04 E:\wsl "E:\ubuntu-24.04.3-wsl-amd64.wsl" --version 2
+其中E:\wsl为wsl系统所在的目录，E:\ubuntu-24.04.3-wsl-amd64.wsl为下载的安装包的位置
+
+启动
+wsl -d Ubuntu-24.04
