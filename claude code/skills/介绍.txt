@@ -1,0 +1,9 @@
+Claude Code 支持项目级 Skill和全局级 Skill
+
+类型	    存放位置	                                生效范围	            优先级	                    适用场景
+项目级	    你的工程根目录\.claude\skills\	            仅当前打开的工程	        最高（可覆盖全局）	        项目专属功能、团队定制规范
+全局级	    C:\Users\你的用户名\.claude\skills\	        所有打开的工程	        最低	                    通用工具、Interview 模式、常用助手
+
+访谈模式
+interview模式并不是claude code官方的模式，而是其他公司在实践中总结的skill。可以手动创建访谈模式
+新建 C:\Users\rbt\.claude\skills\interview\SKILL.md
