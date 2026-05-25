@@ -16,13 +16,13 @@ claude --version
 5.申请api key
 以deepseek为例，新用户免费送1kw token
 https://platform.deepseek.com/sign_in
-得到api key如下
-sk-a372692374c24f80990cb3973624149d
+得到api key形式一般为
+sk-xxxxxxxxxxxxxxxx
 编辑文件 C:\Users\rbt\.claude\settings.json 内容如下
 {
   "env": {
     "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "sk-a372692374c24f80990cb3973624149d",
+    "ANTHROPIC_AUTH_TOKEN": "sk-xxxxxxxxxxxxxxxx",
     "ANTHROPIC_MODEL": "deepseek-v4-flash"
   }
 }
