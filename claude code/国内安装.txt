@@ -14,7 +14,7 @@ npm install -g @anthropic-ai/claude-code --registry=https://registry.npmmirror.c
 claude --version
 
 5.申请api key
-以deepseek为例，新用户免费送1kw token
+以deepseek为例
 https://platform.deepseek.com/sign_in
 得到api key形式一般为
 sk-xxxxxxxxxxxxxxxx
