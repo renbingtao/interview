@@ -1,0 +1,16 @@
+下载官方源码
+https://github.com/xuxueli/xxl-job.git
+
+对于java8，切换到2.5.0-release分支
+对于springboot3 + java17，切换到3.x.x分支
+
+执行初始化sql，脚本位于
+/xxl-job/doc/db/tables_xxl_job.sql
+
+部署【调度中心】
+修改xxl-job-admin项目下的application.properties，主要是数据库ip、账密
+访问http://127.0.0.1:8080/xxl-job-admin/
+admin/123456
+
+部署【执行器项目】
+在自己的项目中定义XxlJob任务。也可以直接用官方现成的示例：xxl-job-executor-samples下的xxl-job-executor-sample-springboot
