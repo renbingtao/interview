@@ -1,0 +1,13 @@
+#include <stdio.h>
+
+//定义数组及初始化
+int myArr[100];
+memset(myArr,0,100);
+
+//循环
+for(int i=0;i<100;i++){
+    myArr[i]=xxx;
+    if(true){
+        printf("%c");
+    }
+}
