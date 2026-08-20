@@ -4,7 +4,11 @@
 ollama下载地址
 https://ollama.com/download
 
+windows斑斑
 exe直接安装
+
+linux版本
+curl -fsSL https://ollama.com/install.sh | sh
 
 更新模型下载路径
 Settings -> Model location
@@ -26,8 +30,6 @@ cd C:\Users\user\AppData\Local\Programs\Ollama
 编写Modelfile文件，示例如下
 
 
-FROM qwen2.5-coder:14b
-SYSTEM """
 FROM qwen2.5-coder:14b
 SYSTEM """
 你是数据分析SQL助手，运行环境为 MySQL 5.7。
@@ -58,3 +60,13 @@ SYSTEM """
 删除自定义大模型
 ./ollama rm my-model
 
+============================== 常用命令 ==============================
+
+# 执行一次prompt
+ollama run qwen3.6-35b-32k "你好"
+
+# 查看当前加载到显存里的模型
+ollama ps
+
+# 卸载指定模型，立刻释放GPU显存，磁盘模型文件不会删除
+ollama stop qwen3.6-35b-32k
