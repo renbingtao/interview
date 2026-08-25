@@ -23,9 +23,27 @@ sk-xxxxxxxxxxxxxxxx
   "env": {
     "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
     "ANTHROPIC_AUTH_TOKEN": "sk-xxxxxxxxxxxxxxxx",
-    "ANTHROPIC_MODEL": "deepseek-v4-flash"
+    "ANTHROPIC_MODEL": "deepseek-v4-pro",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]"
+  },
+  "permissions": {
+   "allow": [
+     "Read",
+     "Write",
+     "Bash(npm *)",
+     "Bash(git *)",
+     "Bash(node *)"
+   ],
+   "deny": [
+     "Bash(rm -rf *)"
+   ]
   }
 }
+其中HAIKU、SONNET、OPUS是ANTHROPIC官方提供的大模型，可以替换成别的
+默认使用ANTHROPIC_MODEL，可以通过/model Haiku来切换到ANTHROPIC_DEFAULT_HAIKU_MODEL指定的模型
+
+也可以拆开，放在项目的.claude/settings.json下
 
 6.hello world
 进入工程，需要先执行git init
