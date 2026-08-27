@@ -1,0 +1,217 @@
+Claude Code 支持项目级 Skill和全局级 Skill
+
+类型	    存放位置	                                生效范围	            优先级	                    适用场景
+项目级	    你的工程根目录\.claude\skills\	            仅当前打开的工程	        最高（可覆盖全局）	        项目专属功能、团队定制规范
+全局级	    C:\Users\你的用户名\.claude\skills\	        所有打开的工程	        最低	                    通用工具、Interview 模式、常用助手
+
+访谈模式
+interview模式并不是claude code官方的模式，而是其他公司在实践中总结的skill。可以手动创建访谈模式
+新建 C:\Users\rbt\.claude\skills\interview\SKILL.md
+
+======================= AI 技能系统（Skills）深度实践 =======================
+
+如果说前面几部分教你的是"怎么和AI对话"，这一部分教你的是"怎么给AI写操作手册" —— 让AI不仅能听懂你的临时指令，还能按照标准化的流程高效执行重复性任务。
+
+还记得 Harness 七层框架吗？Skill 是其中的第三层，也是最重要的一层：它把专业知识变成 cc 在需要时按需调用的"外接大脑"。大模型再聪明，也不可能把所有领域的最佳实践都塞进训练数据。但有了 Skill，你可以——这正是它如此重要的原因。
+
+什么是AI技能（Skill）
+Skill（技能） 是一个封装了特定能力的可复用指令集。
+打个比方：你每次做一道菜，都要从头回忆配料和步骤，很容易忘这忘那。但如果你把菜谱写下来，下次照着做就行了，还能分享给别人。Skill 就是给AI写的"菜谱" —— 把一个复杂的任务标准化、流程化，让AI每次都能按照固定的高质量标准执行。
+
+Skill vs 单次 Prompt：
+维度	        单次 Prompt	            Skill
+性质	        一次性指令	            可复用的标准流程
+一致性	    每次输出可能不同	        每次按照同样的标准执行
+效率	        每次重新写一遍	            一键触发
+维护	        用完即弃	                可版本管理、持续优化
+比喻	        口头交代任务	            书面的标准操作手册（SOP）
+
+Skill 的核心价值
+一致性：确保AI每次执行都遵循相同标准（不会这次用Tab缩进，下次用空格）
+效率：复杂流程一键触发，无需每次重写Prompt
+可复用：跨项目、跨团队共享最佳实践
+可迭代：持续优化和升级，越用越好
+
+Skill 的组成结构
+很多人以为 Skill 就是一个 Markdown 文件，其实不是。一个完整的 Skill 是一个目录，可以包含多种类型的文件，就像一个"能力包"。
+打个比方：如果把 Skill 比作一本食谱，那么：
+
+SKILL.md 就是食谱本身（菜名、步骤、注意事项）
+scripts/ 就是配套的厨房小工具（削皮刀、量杯 —— 封装好的辅助脚本）
+resources/ 就是附赠的食材包和调料配比表（模板、示例数据、配置）
+references/ 就是食谱末尾的"参考书目"（营养学标准、食品安全规范 —— AI 可随时查阅的参考资料）
+
+标准 Skill 目录结构：
+
+skill-xxx/               # Skill 根目录（命名规范：小写+短横线）
+├── SKILL.md              # 核心：技能描述文件（必选）
+├── scripts/              # 辅助脚本目录（可选）
+│   ├── helper.py          # Python 辅助脚本
+│   └── utils.js           # JavaScript 工具函数
+├── resources/            # 配套资源目录（可选）
+│   ├── template/          # 模板文件（如代码模板、报告模板）
+│   ├── examples/          # 示例文件（如输入/输出示例数据）
+│   └── config/            # 配置文件（如规则定义、默认参数）
+├── references/            # 参考文档目录（可选）
+│   ├── best-practices.md    # 最佳实践文档
+│   ├── api-docs.md         # API 参考文档
+│   └── standards.md        # 行业/团队编码规范
+└── requirements.txt        # 依赖声明（可选，列出脚本需要的第三方包）
+
+各组成部分详解：
+
+========================== 1. SKILL.md（必选）—— 技能的"说明书" ==========================
+
+这是 Skill 的核心载体。它包含两部分：头部的元数据（Frontmatter）和正文的具体指令。
+
+---
+# 元数据（Frontmatter，YAML 格式）
+name: react-component-generator   # 技能名称（唯一标识）
+version: 1.0                  # 技能版本
+description: 根据需求生成符合项目规范的 React 组件文件集  # 技能简介
+trigger: ["创建组件", "新建React组件", "生成组件"]      # 触发关键词
+tools: ["typescript", "react"]    # 依赖工具
+author: your-name              # 技能作者
+---
+
+# React 组件生成器
+
+## 执行步骤
+1. 确认组件名称和功能需求
+2. 在 src/components/{componentName}/ 目录下创建文件
+3. 按照 resources/template/ 中的模板生成代码
+4. 运行 scripts/validate.js 验证组件结构
+
+## 输出规范
+- 所有文件创建完成后，报告创建的文件列表
+- 给出组件的使用示例代码
+
+## 错误处理
+- 如果目录已存在，提示用户确认是否覆盖
+- 如果缺少依赖包，提示安装命令
+
+## 示例
+给一个完整的输入→输出示例。
+
+注意：Frontmatter（元数据）是可选的，很多简单的 Skill 可以省略它。但如果你的 Skill 需要被 Agent 系统自动发现和匹配，Frontmatter 中的 trigger 和 description 就非常重要 —— Agent 启动时只读取元数据，只有当用户任务匹配触发条件时，才会加载完整指令。这种"渐进式披露"的设计可以节省上下文窗口空间。
+
+========================== 2. scripts/（可选）—— 辅助脚本 ==========================
+
+当 Skill 需要执行复杂逻辑时（如数据预处理、文件批量操作、格式验证），把这些逻辑封装到脚本中比写在 SKILL.md 里更清晰：
+
+# scripts/helper.py —— 辅助脚本示例
+def fill_missing_value(df, column, strategy="mean"):
+   """缺失值填充：把复杂逻辑封装成函数，SKILL.md 中只需调用即可"""
+   if strategy == "mean":
+      df[column].fillna(df[column].mean(), inplace=True)
+   elif strategy == "empty":
+      df[column].fillna("", inplace=True)
+   return df
+
+========================== 3. resources/（可选）—— 配套资源 ==========================
+
+template/：存放代码模板、文档模板。例如 React 组件的标准结构模板，AI 可以基于模板快速生成代码
+examples/：存放输入/输出示例。帮助 AI 理解"好的输出长什么样"
+config/：存放配置文件（JSON/YAML），定义规则和参数，避免在 SKILL.md 中硬编码
+
+========================== 4. references/（可选）—— 参考文档 ==========================
+
+与 resources/ 不同，references/ 存放的不是"模板和配置"，而是 AI 执行任务时可以查阅的知识性文档。比如：
+
+编码规范文档（团队的代码风格指南）
+安全审计标准（如 OWASP Top 10 清单）
+API 文档（第三方服务的接口说明）
+技术选型文档（为什么用 A 不用 B 的决策记录）
+提示：references/ 和 resources/ 的区别可以这样理解 —— resources/ 是"生产材料"（模板、配置，直接用于生成输出），references/ 是"参考书"（规范、标准、文档，用于指导 AI 做出正确决策）。
+
+========================== 5. requirements.txt（可选）—— 依赖声明 ==========================
+
+如果 scripts/ 中的脚本依赖第三方库，在这里声明，方便部署时一键安装：
+
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+========================== 官方与社区 Skill 资源 ==========================
+
+你不必从零开始造轮子。Skill 生态已经非常成熟，从 Anthropic 官方到头部大厂、再到社区开发者，已经沉淀了大量可直接使用的高质量 Skill。学会"找到好 Skill → 评估 → 安装 → 在此基础上定制"，是比从头写更高效的路径。
+
+Anthropic 官方 Skill 库
+仓库地址：https://github.com/anthropics/skills
+这是 Anthropic 官方维护的 Skill 库，质量最高、最值得优先使用。
+
+安装方式
+
+【使用 Vercel Skills CLI】
+
+# 安装 Anthropic 官方全部 Skill（全局安装）
+npx skills add anthropics/skills -g
+
+# 只安装指定 Skill（推荐按需安装）
+npx skills add anthropics/skills@frontend-design -g
+npx skills add anthropics/skills@mcp-builder -g
+npx skills add anthropics/skills@skill-creator -g
+
+【手动安装（不使用 CLI）】
+如果你不想用 npx skills 命令，也可以手动操作：
+# 克隆官方仓库到本地
+git clone https://github.com/anthropics/skills.git
+
+# 将需要的 Skill 目录复制到你的项目中
+cp -r skills/skills/frontend-design .claude/skills/
+
+========================== 用 skill-creator 让 AI 帮你创建 Skill ==========================
+
+skill-creator 是 Anthropic 官方提供的一个"元技能" —— 它的功能就是帮你创建新的 Skill。这相当于请了一位 Skill 专家替你写"操作手册"。
+
+# Step 1：安装 skill-creator
+npx skills add anthropics/skills@skill-creator -g
+
+安装后，在 Claude Code 中输入：
+> 用 skill-creator 帮我创建一个名为 weekly-report-generator 的技能。
+> 功能：每周自动扫描本周的 Git 提交记录和 TODO 变更，
+> 生成一份结构化的周报 Markdown 文件。
+> 需要的工具：Read、Glob、Bash（用于 git log）。
+
+Claude 会按照 skill-creator 的规范，自动帮你生成完整的 Skill 目录：
+预期输出：
+~/.claude/skills/weekly-report-generator/
+├── SKILL.md        # 包含 Frontmatter 和详细执行步骤
+├── scripts/
+│   └── collect-commits.sh   # 收集本周提交的脚本
+└── resources/
+   └── template/
+      └── weekly-report.md  # 周报模板
+
+提示：skill-creator 会交互式地询问你一些问题（技能名称、触发词、执行步骤等），然后生成符合规范的 SKILL.md。初学者强烈建议先用 skill-creator 生成 Skill，再根据需要手动调整，比从零开始写效率高得多。
+
+========================== 构建自己的 Skill ==========================
+
+识别 Skill 化的机会
+观察你日常使用AI时的重复行为：
+你是否经常给AI写类似的Prompt？→ 把它变成Skill
+你的项目是否有固定的开发模式？→ 把它变成Skill
+你是否有标准化的审查流程？→ 把它变成Skill
+
+提示：DRY原则（Don't Repeat Yourself）不仅适用于代码，也适用于Prompt。如果你发现自己连续3次写了类似的Prompt，就是时候把它Skill化了。
+
+元数据中加入   disable-model-invocation: true  表示让 Skill 退化成"用户主动调的命令"，大模型不会自动加载，只有用户输入 / 才能触发
+
+========================== MCP（Model Context Protocol）简介 ==========================
+
+MCP 是 Anthropic 推出的一个标准化协议，让 AI 工具可以连接外部服务和数据源。你可以把 MCP 理解为给 AI 装"插件"或"扩展能力"。
+MCP 的概念：
+AI 工具（Claude Code）
+   │
+   ├── 内置能力：读写文件、运行命令
+   │
+   └── MCP 扩展能力：
+      ├── GitHub MCP Server → 操作 GitHub（创建PR、管理Issue）
+      ├── Database MCP Server → 直接查询数据库
+      ├── Browser MCP Server → 浏览器自动化测试
+      └── 更多第三方 MCP Server...
+
+MCP 与 Skill 的关系：
+
+Skill 定义了"做什么、怎么做"（流程和规范）
+MCP 提供了"能力扩展"（让AI能做更多事情）
+两者互补：你可以在 Skill 中调用 MCP 提供的能力。例如，一个"部署检查 Skill"可以调用 GitHub MCP 来创建 PR。
