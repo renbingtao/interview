@@ -1,0 +1,77 @@
+================================ 安装及运行runners ================================
+
+# 下载对应版本（如 v0.2.11）
+wget https://gitea.com/gitea/act_runner/releases/download/v0.2.11/act_runner-0.2.11-linux-amd64
+mv act_runner-0.2.11-linux-amd64 act_runner
+chmod +x act_runner
+
+# 生成配置文件
+./act_runner generate-config > config.yaml
+
+# 根据需要编辑配置文件
+# runner:
+#   labels:
+#       - "rocky9:host"
+
+# 注册 Runner（替换实际地址和 Token）
+# 注意：runner有两种：个人和仓库。建议使用仓库级。使用个人级还需要授权给仓库。在仓库页面申请token，则注册得到的runner就是仓库级
+./act_runner register --no-interactive --instance http://192.168.2.10:3000/ --token dx2bckk1P6HHtTLSJcZlAzATAbwhVSe9CaUnOaEw --config config.yaml
+
+# 启动 Runner（保持终端开启，关闭即离线）
+./act_runner daemon --config config.yaml
+# 启动 Runner（想要终端关闭后也运行）
+nohup ./act_runner daemon --config config.yaml > runner.log 2>&1 &
+
+================================ 编写action ================================
+
+编辑.gitea/workflows/xxx.yml文件。以下为某示例
+
+name: 部署xxx
+run-name: 部署xxx
+
+# 手动触发
+on:
+  workflow_dispatch:
+
+# 自定义变量
+env:
+  BUILD_DIR: /home/act_runner/build/xxx
+  REPO_URL: "http://192.168.2.10:3000/xxx/xxx.git"
+  APP: xxx-app
+  DEPLOY_DIR: /home/www/xxx
+  LOG: nohup/xxx.log
+
+jobs:
+  deploy:
+    runs-on: [rocky9]
+    steps:
+      - name: 拉取代码
+        env:
+          GITEA_AUTH_TOKEN: ${{ gitea.token }}
+          GITEA_REF: ${{ gitea.ref_name }}
+          GITEA_ACTOR: ${{ gitea.actor }}
+        run: |
+          set -e
+          : "${GITEA_AUTH_TOKEN:?gitea.token 没注入：确认 Gitea 版本，或改用仓库 secret}"
+          : "${GITEA_REF:?gitea.ref_name 没注入}"
+
+          mkdir -p "$(dirname "$BUILD_DIR")"
+          rm -rf "$BUILD_DIR"
+
+          # 这一段的三个雷：token 只能走 GIT_ASKPASS、必须带 -c credential.helper=、别加 set -x
+          CLONE_URL="${REPO_URL%%://*}://${GITEA_ACTOR:-x-access-token}@${REPO_URL#*://}"
+          ASKPASS="$(dirname "$BUILD_DIR")/gitea-askpass.sh"
+          printf '#!/bin/sh\nprintf %%s "$GITEA_AUTH_TOKEN"\n' > "$ASKPASS"
+          chmod +x "$ASKPASS"
+          export GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0
+
+          git -c credential.helper= clone --depth 1 --branch "$GITEA_REF" "$CLONE_URL" "$BUILD_DIR"
+          rm -f "$ASKPASS"
+          cd "$BUILD_DIR"
+          git log -1 --oneline
+
+      - name: 构建并部署
+        run: |
+          set -e
+          cd "$BUILD_DIR"
+          sh .gitea/sh/act_runner.sh "$APP" "$LOG" "$DEPLOY_DIR"
