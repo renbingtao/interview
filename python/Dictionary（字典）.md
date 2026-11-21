@@ -1,5 +1,4 @@
-
-## Dictionary（字典）
+# Dictionary（字典）
 
 字典是另一种可变容器模型，且可存储任意类型对象。
 
@@ -42,24 +41,28 @@ print(my_map)       # 输出{2: 4, 4: 16, 6: 36}
 
 ## 修改字典
 
-向字典添加新内容的方法是增加新的键/值对，修改或删除已有键/值对如下实例:
+向字典添加新内容的方法是增加新的键/值对，修改或删除已有键/值对如下实例：
 
+```python
 tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'}
 
 tinydict['Age'] = 8               # 更新 Age
 tinydict['School'] = "菜鸟教程"  # 添加信息
+```
 
 ## 删除字典
 
 能删单一的元素也能清空字典，清空只需一项操作。
 
-显式删除一个字典用del命令，如下实例：
+显式删除一个字典用 del 命令，如下实例：
 
+```python
 tinydict = {'Name': 'Runoob', 'Age': 7, 'Class': 'First'}
 
 del tinydict['Name'] # 删除键 'Name'
 tinydict.clear()     # 清空字典
 del tinydict         # 删除字典
+```
 
 ## 遍历
 
@@ -68,12 +71,9 @@ for k, v in my_dict.items():
     print(k, v)
 ```
 
-## 字典内置函数&方法
+## 字典内置函数与方法
 
-    str(my_dict)：输出字典，可以打印的字符串表示
-
-	my_dict.copy()：返回一个字典的浅复制
-    
-    dict.fromkeys(['a','c','b'],0)：创建一个新字典，key包括'a'，'c'，'b'，value统一为0
-
-    my_dict.update(my_dict2)：把my_dict2的键值对更新到my_dict
+- `str(my_dict)`：输出字典，可以打印的字符串表示
+- `my_dict.copy()`：返回一个字典的浅复制
+- `dict.fromkeys(['a', 'c', 'b'], 0)`：创建一个新字典，key 包括 'a'、'c'、'b'，value 统一为 0
+- `my_dict.update(my_dict2)`：把 my_dict2 的键值对更新到 my_dict
